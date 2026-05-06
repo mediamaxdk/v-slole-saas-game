@@ -47,8 +47,8 @@ export async function POST(req: NextRequest) {
     expiresAt,
   });
 
-  // Send email
-  const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-email?token=${token}&callbackURL=%2F`;
+  // Send email - use Better Auth's default verification URL format
+  const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-email?token=${token}`;
   
   const html = `
 <!DOCTYPE html>
