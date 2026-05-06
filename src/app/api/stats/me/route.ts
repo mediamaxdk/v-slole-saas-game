@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     );
 
   // Game type breakdown
-  const gameStats = await db
+  const gameTypeStats = await db
     .select({
       gameType: scores.gameType,
       totalPlays: count(scores.id),
@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
       avgGameDurationMinutes,
       totalCompletedLevels: overallStats.completedLevels || 0,
     },
-    gameBreakdown: gameStats,
+    gameBreakdown: gameTypeStats,
     levelBreakdown: levelStats,
     recentGames: recentGames,
     activityChart: activityChart,
