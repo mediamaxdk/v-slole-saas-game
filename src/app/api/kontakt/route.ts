@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     }).returning();
     
     // Send email notifikation til admin
-    const adminEmail = process.env.ADMIN_EMAIL || "info@v-skole.dk";
+    const adminEmail = process.env.ADMIN_EMAIL || "info@mediamax.dk";
     
     const emailHtml = `
 <!DOCTYPE html>

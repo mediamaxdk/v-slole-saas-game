@@ -72,6 +72,13 @@ export default function KontaktPage() {
                 <p className="text-gray-600">{faq.a}</p>
               </div>
             ))}
+            <div className="bg-white rounded-xl p-6 border border-gray-100">
+              <h3 className="font-semibold text-gray-900 mb-2">Hvordan kontakter jeg jer?</h3>
+              <p className="text-gray-600 text-center">
+                Vi svarer typisk inden for 24 timer. Alle henvendelser behandles fortroligt.
+                Kontakt os også på info@mediamax.dk for spørgsmål.
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -189,10 +189,16 @@ export default function PrivatlivspolitikPage() {
                 <p>
                   Har du spørgsmål til denne privatlivspolitik eller ønsker du at gøre brug af dine rettigheder?
                 </p>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p><strong>Email:</strong> info@v-skole.dk</p>
-                  <p><strong>Hjemmeside:</strong> https://tastaturhelten.dk</p>
-                  <p><strong>Svar tid:</strong> Typisk inden for 24 timer</p>
+                <div className="space-y-4 text-gray-600">
+                  <p>
+                    <strong>Email:</strong> info@mediamax.dk
+                  </p>
+                  <p>
+                    <strong>Hjemmeside:</strong> https://spil.v-skole.dk
+                  </p>
+                  <p>
+                    <strong>Svar tid:</strong> Typisk inden for 24 timer
+                  </p>
                 </div>
               </div>
             </section>
@@ -209,6 +215,7 @@ export default function PrivatlivspolitikPage() {
           <div className="mt-12 pt-8 border-t border-gray-200">
             <p className="text-sm text-gray-500 text-center">
               Denne privatlivspolitik er udarbejdet i overensstemmelse med GDPR og dansk databeskyttelseslov.
+              Gælder for Tastatur Helten på https://spil.v-skole.dk.
             </p>
           </div>
         </div>

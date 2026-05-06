@@ -2,8 +2,8 @@ import Header from "@/components/Header";
 import Link from "next/link";
 
 /**
- * Landingsside — TODO: udbygges i Fase 6
- * Foreløbig: simpel splash med CTA og mini-demo-knap
+ * Landingsside — Marketing page med whitelabel kontaktformular
+ * Professionel design med trust indicators og CTA'er
  */
 export default function HomePage() {
   return (
