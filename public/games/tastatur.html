@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Tastatur Helten — dansk skrivespil</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --bg2: #11151d;
+    --fg: #e8eef5;
+    --dim: #6b7a90;
+    --accent: #61f0c8;
+    --accent2: #ffd166;
+    --danger: #ff5c7a;
+    --typed: #61f0c8;
+    --untyped: #e8eef5;
+    --grid: rgba(120,160,200,0.06);
+    --finger-pinky:  #ff5c7a;
+    --finger-ring:   #ff9f43;
+    --finger-middle: #ffd166;
+    --finger-index:  #61f0c8;
+    --finger-thumb:  #4cc9f0;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    height: 100%; width: 100%;
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+  }
+  #game { position: fixed; inset: 0; display: flex; flex-direction: column; }
+  #stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; background:
+    radial-gradient(ellipse at 50% 0%, #15202d 0%, var(--bg) 70%);
+  }
+
+  /* ----- Persistent keyboard guide ----- */
+  #keyboard {
+    flex: 0 0 auto;
+    padding: 8px 10px 10px;
+    background: linear-gradient(to bottom, rgba(15,20,28,0) 0%, rgba(15,20,28,0.7) 25%, rgba(15,20,28,0.95) 100%);
+    border-top: 1px solid rgba(120,160,200,0.10);
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    user-select: none;
+    transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.25s ease;
+    position: relative;
+  }
+  #keyboard.hidden-kb { max-height: 0; padding: 0; opacity: 0; overflow: hidden; }
+  /* Wrapping all rows in a single block so QWERTY stagger is visible.
+     Without this, each row centers individually and padding has no effect. */
+  #kb-rows {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .kb-row {
+    display: flex;
+    gap: 4px;
+  }
+  .kb-row.r-spc { align-self: center; padding-top: 2px; }
+  /* Stagger matches a real Danish QWERTY: mid ≈ ½ key right, bot ≈ 1 key right. */
+  .kb-row.r-mid { padding-left: clamp(10px, 1.6vw, 22px); }
+  .kb-row.r-bot { padding-left: clamp(22px, 3.6vw, 46px); }
+  .key {
+    --fc: #6b7a90;
+    box-sizing: border-box;
+    width: clamp(28px, 4.4vw, 50px);
+    height: clamp(28px, 4.4vw, 50px);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    font-size: clamp(11px, 1.6vw, 17px);
+    font-weight: 600;
+    background: color-mix(in srgb, var(--fc) 14%, var(--bg2));
+    color: var(--fc);
+    border: 1px solid color-mix(in srgb, var(--fc) 35%, transparent);
+    text-transform: uppercase;
+    transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+  }
+  .key.space {
+    width: clamp(160px, 32vw, 320px);
+    font-size: 10px;
+    letter-spacing: 0.3em;
+  }
+  .key.f-pinky  { --fc: var(--finger-pinky); }
+  .key.f-ring   { --fc: var(--finger-ring); }
+  .key.f-middle { --fc: var(--finger-middle); }
+  .key.f-index  { --fc: var(--finger-index); }
+  .key.f-thumb  { --fc: var(--finger-thumb); }
+  .key.active {
+    background: var(--fc);
+    color: #0b1218;
+    transform: translateY(-3px) scale(1.08);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--fc) 60%, transparent),
+                0 0 0 2px var(--bg);
+  }
+  #finger-hint {
+    height: 22px; line-height: 22px;
+    font-size: 12px; letter-spacing: 0.06em;
+    color: var(--dim);
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 4px;
+  }
+  #finger-hint .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--dim);
+    box-shadow: 0 0 6px currentColor;
+  }
+  #finger-hint.has-target { color: var(--fg); }
+  #kb-toggle {
+    position: absolute;
+    right: 10px; top: 4px;
+    background: transparent;
+    border: 1px solid rgba(120,160,200,0.15);
+    color: var(--dim);
+    width: 22px; height: 22px; border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 18px;
+    padding: 0;
+  }
+  #kb-toggle:hover { color: var(--accent); border-color: var(--accent); }
+
+  @media (max-width: 480px) {
+    .key { gap: 2px; }
+  }
+  .hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 12px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    pointer-events: none;
+    font-size: 14px;
+    text-shadow: 0 0 6px rgba(0,0,0,0.8);
+  }
+  .hud .group { display: flex; gap: 18px; align-items: center; }
+  .hud .label { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
+  .hud .val { color: var(--fg); font-size: 18px; font-weight: 600; margin-left: 4px; }
+  .hud .lives { color: var(--danger); letter-spacing: 2px; font-size: 18px; }
+  .hud .level-name { color: var(--accent2); font-size: 12px; }
+  .hud .next-life { color: var(--dim); font-size: 11px; }
+
+  .overlay {
+    position: absolute; inset: 0;
+    background: rgba(8,11,16,0.92);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 20;
+  }
+  .overlay.hidden { display: none; }
+  .panel {
+    background: var(--bg2);
+    border: 1px solid rgba(120,160,200,0.15);
+    border-radius: 14px;
+    padding: 32px 36px;
+    width: min(560px, 92vw);
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02) inset;
+  }
+  .panel h1 {
+    margin: 0 0 6px;
+    font-size: 28px;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+  }
+  .panel h2 {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: var(--dim);
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .panel p { color: var(--fg); line-height: 1.5; margin: 12px 0; font-size: 14px; }
+  .panel small { color: var(--dim); }
+
+  .row { display: flex; gap: 10px; margin: 12px 0; }
+  .btn {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid rgba(120,160,200,0.25);
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    letter-spacing: 0.04em;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary {
+    background: var(--accent);
+    color: #0b1218;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .btn.primary:hover { background: #7af2d4; color: #0b1218; }
+  .btn.danger { color: var(--danger); border-color: rgba(255,92,122,0.4); }
+  .btn.danger:hover { background: var(--danger); color: #fff; }
+
+  input[type="text"] {
+    background: #0b0e14;
+    border: 1px solid rgba(120,160,200,0.25);
+    color: var(--fg);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 16px;
+    width: 100%;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+
+  .levels {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+    gap: 8px;
+    margin: 14px 0 6px;
+  }
+  .lvl {
+    background: #0d1219;
+    border: 1px solid rgba(120,160,200,0.12);
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .lvl:hover { border-color: var(--accent); }
+  .lvl.locked { opacity: 0.35; cursor: not-allowed; }
+  .lvl.locked:hover { border-color: rgba(120,160,200,0.12); }
+  .lvl .num { font-size: 22px; color: var(--accent2); font-weight: 600; }
+  .lvl .lbl { font-size: 10px; color: var(--dim); margin-top: 4px; letter-spacing: 0.04em; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 18px;
+    margin: 12px 0;
+  }
+  .stat-row {
+    display: flex; justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dashed rgba(120,160,200,0.1);
+    font-size: 13px;
+  }
+  .stat-row .k { color: var(--dim); }
+  .stat-row .v { color: var(--fg); font-weight: 600; }
+
+  .toast {
+    position: absolute;
+    top: 60px; left: 50%; transform: translateX(-50%);
+    background: rgba(97,240,200,0.12);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 30;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Wrong-key visual cues */
+  #wrong-flash {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 28%, rgba(255,92,122,0.40) 100%);
+    opacity: 0;
+    z-index: 5;
+  }
+  #wrong-flash.flash { animation: wrongFlash 0.30s ease-out; }
+  @keyframes wrongFlash {
+    0%   { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  #minus-one {
+    position: absolute;
+    top: 48px; right: 28px;
+    color: var(--danger);
+    font-weight: 700;
+    font-size: 22px;
+    pointer-events: none;
+    opacity: 0;
+    text-shadow: 0 0 8px rgba(0,0,0,0.7);
+    z-index: 6;
+  }
+  #minus-one.show { animation: minusOne 0.65s ease-out; }
+  @keyframes minusOne {
+    0%   { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-34px); }
+  }
+  .key.wrong-key {
+    background: var(--danger) !important;
+    color: #fff !important;
+    box-shadow: 0 0 14px var(--danger);
+    transform: translateY(-2px) scale(1.06);
+  }
+
+  .pause-hint {
+    position: absolute;
+    bottom: 14px; left: 50%; transform: translateX(-50%);
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    pointer-events: none;
+  }
+
+  @media (max-width: 480px) {
+    .hud { padding: 8px 12px; font-size: 12px; }
+    .hud .val { font-size: 15px; }
+    .panel { padding: 24px 20px; }
+    .panel h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="stage">
+    <canvas id="canvas"></canvas>
+
+    <div class="hud" id="hud">
+      <div class="group">
+        <div><span class="label">Spiller</span><span class="val" id="hud-name">—</span></div>
+        <div><span class="label">Niveau</span><span class="val" id="hud-level">1</span> <span class="level-name" id="hud-level-name">Bogstaver</span></div>
+      </div>
+      <div class="group">
+        <div><span class="label">Point</span><span class="val" id="hud-score">0</span></div>
+        <div class="next-life" id="hud-nextlife">Næste liv om 500</div>
+        <div><span class="label">Liv</span><span class="lives" id="hud-lives">♥♥♥♥♥</span></div>
+      </div>
+    </div>
+
+    <div class="pause-hint">ESC pause · TAB stats · Ctrl+K skjul tastatur</div>
+    <div class="toast" id="toast"></div>
+    <div id="wrong-flash"></div>
+    <div id="minus-one">−1</div>
+  </div>
+
+  <div id="keyboard">
+    <button id="kb-toggle" title="Skjul tastatur (Ctrl+K)">▾</button>
+    <div id="kb-rows">
+      <div class="kb-row r-top" id="kb-row-top"></div>
+      <div class="kb-row r-mid" id="kb-row-mid"></div>
+      <div class="kb-row r-bot" id="kb-row-bot"></div>
+      <div class="kb-row r-spc"><div class="key f-thumb space" data-k=" ">mellemrum</div></div>
+    </div>
+    <div id="finger-hint">
+      <span class="dot" id="fh-dot"></span>
+      <span id="fh-text">Brug fingrene fra hjemmerækken (asdf jkl)</span>
+    </div>
+  </div>
+
+  <!-- Welcome / name input -->
+  <div class="overlay" id="screen-welcome">
+    <div class="panel">
+      <h1>Tastatur Helten</h1>
+      <h2>Lær at skrive på dansk</h2>
+      <p>Bogstaver og ord falder ned. Skriv dem før de rammer bunden. Få point. Bliv bedre.</p>
+      <p>Hvad hedder du?</p>
+      <input type="text" id="name-input" placeholder="Skriv dit navn" maxlength="20" autocomplete="off">
+      <div class="row" style="justify-content:flex-end; margin-top:18px">
+        <button class="btn primary" id="btn-welcome-start">Start</button>
+      </div>
+      <p style="margin-top:18px"><small>Dine point gemmes i en cookie i denne browser. Sletter du cookien, mister du dine stats.</small></p>
+    </div>
+  </div>
+
+  <!-- Main menu -->
+  <div class="overlay hidden" id="screen-menu">
+    <div class="panel">
+      <h1 id="menu-greeting">Hej!</h1>
+      <h2>Vælg niveau</h2>
+      <div class="levels" id="level-grid"></div>
+      <p><small id="menu-hint">Du kan kun starte på niveauer du har låst op.</small></p>
+      <div class="row" style="margin-top:18px; flex-wrap:wrap">
+        <button class="btn primary" id="btn-menu-play">Spil videre</button>
+        <button class="btn" id="btn-menu-tutorial">Vis tastatur-guide</button>
+        <button class="btn" id="btn-menu-stats">Mine stats</button>
+        <button class="btn" id="btn-menu-name">Skift navn</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="overlay hidden" id="screen-stats">
+    <div class="panel">
+      <h1>Stats</h1>
+      <h2 id="stats-name">—</h2>
+      <div class="stats-grid" id="stats-overall"></div>
+      <h2 style="margin-top:24px">Pr. niveau</h2>
+      <div id="stats-perlevel"></div>
+      <div class="row" style="justify-content:flex-end; margin-top:20px">
+        <button class="btn danger" id="btn-stats-reset">Nulstil stats</button>
+        <button class="btn primary" id="btn-stats-back">Tilbage</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div class="overlay hidden" id="screen-pause">
+    <div class="panel">
+      <h1>Pause</h1>
+      <p>Tryk ESC eller fortsæt.</p>
+      <div class="row" style="justify-content:flex-end; margin-top:14px">
+        <button class="btn" id="btn-pause-quit">Til menuen</button>
+        <button class="btn primary" id="btn-pause-resume">Fortsæt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level complete -->
+  <div class="overlay hidden" id="screen-levelup">
+    <div class="panel">
+      <h1>Godt klaret!</h1>
+      <h2 id="levelup-text">Niveau gennemført</h2>
+      <p id="levelup-summary"></p>
+      <div class="row" style="justify-content:flex-end; margin-top:14px">
+        <button class="btn" id="btn-levelup-menu">Til menuen</button>
+        <button class="btn primary" id="btn-levelup-next">Næste niveau →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tutorial / onboarding -->
+  <div class="overlay hidden" id="screen-tutorial">
+    <div class="panel" style="width: min(680px, 96vw)">
+      <h1>Sådan bruger du tastaturet</h1>
+      <h2>Touch-typing — hver finger har sine taster</h2>
+      <p>Læg <b>venstre hånd</b> på <b>A&nbsp;S&nbsp;D&nbsp;F</b> og <b>højre hånd</b> på <b>J&nbsp;K&nbsp;L&nbsp;Æ</b>. Det er hjemmerækken — fingrene starter altid her. Tommelfingrene laver mellemrum.</p>
+      <p>Hver tast er farvet efter, hvilken finger der skal bruge den. Når et bogstav falder ned, lyser den rigtige tast op nederst på skærmen, og du får at vide hvilken finger du skal bruge.</p>
+      <div id="tutorial-legend" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 14px; margin: 14px 0;"></div>
+      <div id="tutorial-kb" style="margin: 16px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 4px;"></div>
+      <p><small>Du kan altid skjule tastatur-guiden med knappen ▾ eller Ctrl+K.</small></p>
+      <div class="row" style="justify-content:flex-end; margin-top:18px">
+        <button class="btn" id="btn-tutorial-skip">Spring over</button>
+        <button class="btn primary" id="btn-tutorial-go">Forstået, lad os spille!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game over -->
+  <div class="overlay hidden" id="screen-gameover">
+    <div class="panel">
+      <h1>Game over</h1>
+      <h2 id="gameover-text">Du løb tør for liv</h2>
+      <p id="gameover-summary"></p>
+      <div class="row" style="justify-content:flex-end; margin-top:14px">
+        <button class="btn" id="btn-gameover-menu">Til menuen</button>
+        <button class="btn primary" id="btn-gameover-retry">Prøv igen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   TASTATUR HELTEN — dansk skrivespil
+   Single-file offline typing game for Danish school use.
+   ========================================================================= */
+
+/* -------------------- Word & sentence data -------------------- */
+
+// Level 1 letter pool — grows in waves as the player makes progress.
+// Order follows touch-typing pedagogy: home row index → middle/ring → pinky → top → bottom → æøå.
+const LETTER_WAVES = [
+  ['f','j'],
+  ['f','j','d','k'],
+  ['f','j','d','k','s','l'],
+  ['f','j','d','k','s','l','a'],
+  ['f','j','d','k','s','l','a','e','i','r','u'],
+  ['f','j','d','k','s','l','a','e','i','r','u','t','n','g','h'],
+  ['f','j','d','k','s','l','a','e','i','r','u','t','n','g','h','o','m','v','b','c','p','y'],
+  ['f','j','d','k','s','l','a','e','i','r','u','t','n','g','h','o','m','v','b','c','p','y','æ','ø','å'],
+  ['f','j','d','k','s','l','a','e','i','r','u','t','n','g','h','o','m','v','b','c','p','y','æ','ø','å','q','w','x','z']
+];
+
+// Level 2 — danske stavelser og 1-2 bogstavs ord.
+const SYLLABLES_L2 = [
+  // korte ord
+  "og","er","at","en","et","så","du","vi","om","op","ud","ja","de","da","nu","mr","ny","ny",
+  "to","tre","fra","tit","mig","dig","sig","han","hun","det","den","jeg","har","var","kan","vil",
+  // åbne stavelser (konsonant + vokal)
+  "ba","be","bi","bo","bu","by","bæ","bø","bå",
+  "da","de","di","do","du","dy","dæ","dø","då",
+  "fa","fe","fi","fo","fu","fy","fæ","fø","få",
+  "ga","ge","gi","go","gu","gy","gæ","gø","gå",
+  "ha","he","hi","ho","hu","hy","hæ","hø","hå",
+  "ka","ke","ki","ko","ku","ky","kæ","kø","kå",
+  "la","le","li","lo","lu","ly","læ","lø","lå",
+  "ma","me","mi","mo","mu","my","mæ","mø","må",
+  "na","ne","ni","no","nu","ny","næ","nø","nå",
+  "pa","pe","pi","po","pu","py","pæ","pø","på",
+  "ra","re","ri","ro","ru","ry","ræ","rø","rå",
+  "sa","se","si","so","su","sy","sæ","sø","så",
+  "ta","te","ti","to","tu","ty","tæ","tø","tå",
+  "va","ve","vi","vo","vu","vy","væ","vø","vå"
+];
+
+// Level 3 — 2-3 bogstavs ord (hyppige danske ord)
+const WORDS_L3 = [
+  "og","er","at","en","et","til","på","af","så","du","vi","om","op","ud","ja","nej",
+  "de","da","nu","ham","han","hun","det","den","jeg","har","var","kan","vil","jo","mig","dig","sig",
+  "se","gå","få","gø","ny","ti","to","fra","mor","far","kat","hat","hus","leg","ord","sov","sol",
+  "bil","fly","vej","mad","tak","vej","sin","sit","kun","men","hen","tæt","sød","kær","ren","ond",
+  "ko","ko","tre","æg","is","ø","å","te","by","gør","gid","fik","tit","kom","fod","mod","mit","din",
+  "lys","lyd","ler","los","mus","ler","lup","mor","mus","far","fed","var","ven","ved","syd","nor"
+];
+
+// Level 4 — 3-4 bogstavs ord
+const WORDS_L4 = [
+  "hund","kage","mund","måne","sten","brød","hjem","leve","time","bord","bænk","glas","papa","mama",
+  "barn","piger","blød","glad","løbe","ride","kysse","sove","leve","læse","skri","mand","kvik","alle","aldrig",
+  "snue","stol","fest","lege","ven","ven","læge","rar","sus","stof","skib","kort","vand","blå","grøn",
+  "rød","gul","sort","hvid","mark","gade","port","løb","hop","kage","kuge","ulve","ulig","åben","ærlig",
+  "hund","fugl","sang","bog","gus","arme","ben","fod","hånd","næse","mund","øje","øre","dør","tag","stue",
+  "stor","lille","høj","lav","ung","ny","gå","løb","kom","tag","få","sig","spis","drik","hør","se",
+  "alt","ind","ned","ude","ind","over","inde","sammen","tit","ofte","altid","kun","godt","slet","helt"
+];
+
+// Level 5 — 4-5 bogstavs ord
+const WORDS_L5 = [
+  "huset","bilen","bogen","barnet","manden","kvinde","piger","drenge","skole","lærer","klasse","lektie",
+  "venlig","glade","store","lille","smuk","fede","nemme","svære","bøger","stole","spise","drikke","sove",
+  "vågne","løbe","danse","synge","grine","græde","tegne","skrive","læse","tænke","huske","glemme",
+  "blive","komme","gå","tage","give","bringe","finde","miste","åbne","lukke","starte","slutte","møde",
+  "vente","ringe","kalde","sende","fange","kaste","bære","sælge","købe","betale","bruge","gemme",
+  "vinde","tabe","prøve","øve","lære","forstå","tale","sige","spørge","svare","nikke","vinke",
+  "vinter","sommer","forår","efterår","måned","uger","dage","timer","minut","aften","morgen","nat",
+  "sø","skov","mark","strand","have","park","gade","torv","by","land","verden","jord","luft","ild"
+];
+
+// Level 6 — Top 100 mest brugte danske ord
+const WORDS_TOP100 = [
+  "og","i","jeg","det","at","en","den","til","er","som","på","de","med","han","af","for","ikke","der","var","mig",
+  "sig","men","et","har","om","vi","min","havde","ham","hun","nu","over","da","fra","du","ud","sin","dem","os","op",
+  "man","hans","hvor","eller","hvad","skal","selv","her","alle","vil","blev","kunne","ind","når","være","dog","noget","ville","jo","deres",
+  "efter","ned","skulle","denne","end","dette","mit","også","under","have","dig","anden","hende","mine","alt","meget","sit","sine","vor","mod",
+  "disse","hvis","din","nogle","hos","blive","mange","ad","bliver","hendes","været","thi","jer","sådan","jeres","være","så","kan","kun","kom"
+];
+
+// Level 7 — Top ~500 (kombineres med top 100)
+const WORDS_TOP500_EXTRA = [
+  "barn","mand","kvinde","tid","år","dag","aften","morgen","nat","time","minut","uge","måned","sommer","vinter","forår","efterår","verden","jord","sol",
+  "måne","stjerne","himmel","hav","skov","mark","sø","flod","bjerg","dal","by","land","gade","vej","hus","hjem","dør","vindue","værelse","stue",
+  "køkken","seng","bord","stol","bog","pen","papir","skole","klasse","lærer","elev","ven","veninde","familie","bror","søster","onkel","tante","baby","barnebarn",
+  "krop","hoved","hår","ansigt","øje","næse","mund","øre","tand","tunge","arm","hånd","finger","ben","fod","ryg","mave","hjerte","fugl","fisk",
+  "hund","kat","ko","hest","gris","får","mus","ulv","løve","abe","blomst","træ","blad","græs","frugt","æble","banan","appelsin","brød","ost",
+  "mælk","vand","kaffe","te","saft","sukker","salt","peber","æg","kød","fisk","ris","pasta","kage","is","chokolade","slik","måltid","frokost","middag",
+  "rød","blå","grøn","gul","sort","hvid","grå","brun","lyserød","orange","stor","lille","høj","lav","lang","kort","tyk","tynd","bred","smal",
+  "varm","kold","hed","kølig","tør","våd","ny","gammel","ung","ældre","glad","ked","sur","vred","sjov","kedelig","nem","svær","let","tung",
+  "hurtig","langsom","stærk","svag","rig","fattig","klog","dum","smuk","grim","ren","beskidt","åben","lukket","fuld","tom","tæt","løs","blød","hård",
+  "spise","drikke","sove","vågne","stå","sidde","ligge","gå","løbe","hoppe","danse","synge","tale","råbe","hviske","læse","skrive","tegne","male","tænke",
+  "vide","huske","glemme","forstå","lære","arbejde","lege","hvile","vente","komme","tage","give","bringe","sende","modtage","købe","sælge","betale","bruge","tabe",
+  "vinde","starte","slutte","åbne","lukke","kaste","fange","bære","trække","skubbe","sætte","stille","lægge","tage","møde","ringe","skrive","læse","spørge","svare",
+  "først","sidst","næst","måske","altid","aldrig","ofte","sjælden","tit","hurtigt","langsomt","godt","dårligt","rigtigt","forkert","sammen","alene","stille","højt","lavt",
+  "én","to","tre","fire","fem","seks","syv","otte","ni","ti","elleve","tolv","tretten","tyve","tredive","halvtreds","hundrede","tusind","million","mange",
+  "ja","nej","måske","tak","velbekomme","undskyld","værsgo","hej","farvel","goddag","godmorgen","godnat","velkommen","hvordan","hvorfor","hvornår","hvilken","hvilket","hvor","hvad",
+  "tror","ser","hører","mærker","føler","lugter","smager","sover","drømmer","vågner","drikker","spiser","laver","kigger","leder","finder","bygger","ødelægger","reparerer","skaber",
+  "bedst","værst","større","mindre","flere","færre","tidligere","senere","næste","forrige","følgende","foregående","sidstnævnte","kommende","nuværende","tidligere","tilbage","frem","ind","ud",
+  "rundt","gennem","mellem","blandt","langs","over","under","foran","bagved","ved","mod","fra","til","i","på","af","med","uden","mellem","mod"
+];
+
+// Level 8 — Top ~1000 (yderligere 500 ord oven i top 500)
+const WORDS_TOP1000_EXTRA = [
+  "regering","politiker","minister","statsminister","valg","parti","stemme","demokrati","folketing","kommune","region","borger","skat","velfærd","arbejde","arbejdsplads","kollega","chef","ansat","lønmodtager",
+  "virksomhed","firma","selskab","forretning","butik","supermarked","bager","slagter","grønthandler","apotek","læge","sygeplejerske","sygehus","klinik","medicin","sygdom","feber","forkølelse","hovedpine","mavepine",
+  "smerte","sår","plaster","operation","behandling","undersøgelse","diagnose","recept","vaccine","sundhed","motion","træning","sport","fodbold","håndbold","badminton","tennis","svømning","cykling","løb",
+  "vinder","taber","kamp","spil","leg","legetøj","dukke","bil","cykel","scooter","bus","tog","fly","skib","færge","metro","sporvogn","taxa","lastbil","traktor",
+  "by","landsby","forstad","kvarter","bydel","centrum","udkant","plads","park","legeplads","strand","kyst","havn","kanal","bro","tunnel","kirke","kloster","slot","borg",
+  "museum","bibliotek","teater","biograf","koncert","musik","sang","melodi","instrument","klaver","guitar","violin","trompet","trommer","fløjte","band","kor","orkester","komponist","sanger",
+  "kunstner","maler","forfatter","digter","skuespiller","instruktør","journalist","redaktør","reporter","fotograf","designer","arkitekt","ingeniør","forsker","videnskab","forskning","laboratorium","mikroskop","teleskop","computer",
+  "tablet","mobiltelefon","skærm","tastatur","mus","printer","internet","hjemmeside","email","besked","fil","mappe","program","app","kode","data","robot","kunstig","intelligens","teknologi",
+  "energi","strøm","batteri","ledning","stikkontakt","lampe","pære","tv","radio","højttaler","hovedtelefon","kamera","film","billede","foto","video","tegnefilm","serie","reklame","nyhed",
+  "avis","blad","tidsskrift","magasin","artikel","overskrift","titel","forfatter","sætning","afsnit","kapitel","ord","bogstav","tegn","punktum","komma","spørgsmålstegn","udråbstegn","tankestreg","parentes",
+  "alfabet","sprog","dansk","engelsk","tysk","fransk","spansk","italiensk","svensk","norsk","finsk","russisk","kinesisk","japansk","arabisk","hindi","oversættelse","ordbog","grammatik","stavning",
+  "navn","fornavn","efternavn","mellemnavn","kælenavn","tilnavn","alder","fødselsdag","fødselsdato","fødested","adresse","postnummer","telefonnummer","cpr","pas","kørekort","sygesikring","dåb","konfirmation","bryllup",
+  "begravelse","kiste","gravsten","kirkegård","kapel","præst","gud","bøn","tro","religion","kristendom","jødedom","islam","buddhisme","hinduisme","kirke","moské","synagoge","tempel","helligdom",
+  "jul","påske","pinse","sankt","hans","fastelavn","halloween","nytår","helligdag","ferie","weekend","fridag","arbejdsdag","skoledag","hverdag","mandag","tirsdag","onsdag","torsdag","fredag",
+  "lørdag","søndag","januar","februar","marts","april","maj","juni","juli","august","september","oktober","november","december","årstid","klima","vejr","regn","sne","sol",
+  "skyer","storm","torden","lyn","tåge","vind","temperatur","grader","celsius","prognose","meteorolog","klima","drivhus","forurening","miljø","natur","dyreliv","planteliv","biologi","økologi",
+  "genbrug","affald","skrald","skraldespand","container","flaske","dåse","papir","pap","plast","metal","glas","tekstil","mode","tøj","skjorte","bluse","trøje","jakke","frakke",
+  "bukser","jeans","nederdel","kjole","kjole","strømper","sokker","sko","støvler","sandaler","tøfler","tørklæde","handske","hat","kasket","hue","hue","bælte","slips","sløjfe",
+  "smykke","ring","halskæde","armbånd","ørering","ur","briller","solbriller","taske","rygsæk","kuffert","pung","tegnebog","nøgle","nøglering","mønter","sedler","kontant","kort","betaling",
+  "regning","kvittering","faktura","tilbud","udsalg","rabat","pris","gratis","dyrt","billigt","stolt","jaloux","misundelig","forelsket","forelskelse","kærlighed","had","frygt","mod","håb",
+  "drøm","mareridt","tanke","ide","plan","beslutning","valg","mulighed","problem","løsning","spørgsmål","svar","forklaring","forskel","ligned","sammenligning","modsætning","eksempel","metode","måde",
+  "begyndelse","midte","slutning","ende","start","mål","baggrund","fortid","nutid","fremtid","historie","oplevelse","hændelse","ulykke","held","tilfælde","mirakel","skæbne","chance","mulighed",
+  "regel","lov","ret","pligt","ansvar","forpligtelse","frihed","selvstændighed","afhængighed","tillid","mistillid","sandhed","løgn","ærlighed","retfærdighed","uretfærdighed","fred","krig","konflikt","våben",
+  "soldat","general","politi","betjent","tyv","forbryder","kriminel","retssal","dommer","advokat","anklager","forsvarer","vidne","jury","dom","straf","fængsel","bøde","lov","regler"
+];
+
+// Level 9 — 3-ords sætninger
+const SENTENCES_3 = [
+  "Jeg er glad","Du er sød","Han er hjemme","Hun har en kat","Vi løber hurtigt","De spiser frokost",
+  "Bilen er rød","Hunden gør højt","Solen skinner varmt","Drengen leger ude","Pigen læser bog","Manden drikker kaffe",
+  "Mor laver mad","Far ser tv","Læreren forklarer noget","Eleven skriver i hæftet","Bogen er tyk","Klokken er otte",
+  "Nu er det","Det er sjovt","Han kan svømme","Hun kan synge","Vi går hjem","De tager bussen",
+  "Jeg elsker dig","Du har ret","Det går fint","Kaffe er varm","Vand er koldt","Brød er godt",
+  "Æblet er rødt","Banan er gul","Jeg har travlt","Vi har fri","Skolen er god","Dagen er lang",
+  "Natten er stille","Måne er rund","Stjerner er smukke","Himlen er blå","Havet er stort","Sommer er varm",
+  "Vinter er kold","Foråret kommer snart","Efteråret er gult","Kage smager godt","Pizza er bedst","Is er lækkert"
+];
+
+// Level 10 — 4-ords sætninger
+const SENTENCES_4 = [
+  "Jeg er meget glad","Hun har en stor hund","Han spiser et æble","Vi går i skole","De leger på legepladsen",
+  "Bilen kører meget hurtigt","Solen skinner i dag","Det regner i Aalborg","Han kan godt lide musik","Hun synger en smuk sang",
+  "Læreren læser højt op","Eleverne lytter til hende","Bogen ligger på bordet","Pennen er lige der","Klokken er fem nu",
+  "Min mor bager kage","Min far går tur","Min søster er lille","Min bror er stor","Familien spiser sammen sammen",
+  "Hunden løber i haven","Katten sover på stolen","Fuglene synger om morgenen","Træerne er meget høje","Blomsterne er blevet røde",
+  "Vinteren er kold i Danmark","Sommeren er ofte regnfuld","Jeg cykler altid til skole","Hun går aldrig i biografen","Vi rejser snart til Sverige",
+  "De besøger deres bedstemor","Han spiller fodbold om søndagen","Hun læser bog hver aften","Drengen tegner en stor båd","Pigen skriver et fint brev",
+  "Bordet er dækket flot","Måltidet smager rigtig godt","Vandet i søen er klart","Skoven er fuld af liv","Strand er en god ide",
+  "Toget kører til København","Flyet letter fra lufthavnen","Bussen stopper ved torvet","Færgen sejler over havet","Cyklen står ved døren"
+];
+
+// Level 12 — Tal og symboler. Korte udfordringer med tal, regnetegn og
+// almindelige tegnsætningstegn. Fokus på at bruge talrækken og symbol-taster.
+const NUMBERS_SYMBOLS = [
+  // enkelte tal
+  "1","2","3","4","5","6","7","8","9","0",
+  // tocifrede tal
+  "12","17","23","42","56","78","99","100",
+  // år og datoer
+  "år 2024","år 2026","2024","31-12","12-08","01-01",
+  // klokkeslæt
+  "kl. 8","kl. 12","kl. 15","07:30","12:45","16:00",
+  // simple regnestykker
+  "2 + 3","5 - 1","4 + 4","10 - 7","6 + 6","9 - 3",
+  "2 + 3 = 5","8 - 4 = 4","10 + 5 = 15","6 + 7 = 13",
+  // procent og penge
+  "100 %","50 %","25 %","20 kr.","50 kr.","100 kr.","250 kr.",
+  // udråb og spørgsmål
+  "Hej!","Ja!","Nej!","Ok?","Hvad?","Hvorfor?","Hvor?","Hej, du!",
+  // tal i sætninger
+  "Jeg er 10 år.","Hun er 12 år.","Vi er 4 børn.","Klokken er 8.","Det koster 25 kr.",
+  "Han har 3 hunde.","Vi har 2 katte.","Jeg fik 9 ud af 10.",
+  // citater og parenteser
+  "(godt)","(ja)","\"hej\"","\"tak\"",
+  // bindestreg og kolon
+  "rød-hvid","tlf: 88 12 34 56","mor: ja","far: nej",
+  // blandet
+  "5 + 3 og 2.","4 timer & 30 min.","2/3 af kagen.","kl. 7:45 om morgenen."
+];
+
+// Level 11 — 5-ords sætninger med tegnsætning (komma og punktum)
+const SENTENCES_5 = [
+  "Jeg er meget glad i dag.","Hun har en lille, hvid hund.","Han spiser et stort, rødt æble.","Vi går altid i skole sammen.","De leger ude på den nye legeplads.",
+  "Bilen kører alt for hurtigt forbi.","Solen skinner smukt fra en blå himmel.","Det regner, og det blæser kraftigt.","Han kan godt lide klassisk musik.","Hun synger en meget smuk, lille sang.",
+  "Læreren læser en spændende bog højt.","Eleverne lytter meget opmærksomt til hende.","Bogen ligger åben på det store bord.","Den blå pen ligger lige derovre.","Klokken er fem minutter i tre.",
+  "Min mor bager en stor, lækker kage.","Min far går en lang tur søndag.","Min lille søster er kun fire år.","Min store bror går i femte klasse.","Familien spiser middag sammen hver aften.",
+  "Hunden løber rundt i den store have.","Katten sover sødt på den bløde stol.","Fuglene synger smukt udenfor mit vindue.","De høje, grønne træer i skoven svajer.","De røde blomster dufter rigtig dejligt.",
+  "Vinteren i Danmark er ofte mørk.","Sommeren her er ikke altid varm.","Jeg cykler hver morgen ned til skolen.","Hun går nogle gange i biografen alene.","Vi rejser hver sommer til vores sommerhus.",
+  "De besøger deres bedstemor og bedstefar.","Han spiller fodbold med vennerne om søndagen.","Hun læser en god bog hver aften.","Drengen tegner en stor båd på papiret.","Pigen skriver et fint brev til sin tante.",
+  "Det runde bord er dækket meget flot.","Måltidet smager rigtig godt, synes alle.","Vandet i den lille sø er klart.","Skoven er fuld af liv om foråret.","En tur på stranden er en god ide.",
+  "Når det er mørkt, går vi hjem.","Hvis du er sulten, kan vi spise.","Selvom det regner, går vi en tur.","Først tager jeg jakken på, så går jeg.","Hun er glad, fordi hun har fri."
+];
+
+/* -------------------- Game state -------------------- */
+
+// Dedupe helper — sources contain natural variants that can repeat across
+// curated buckets; unique-ify so the spawn picker has clean odds.
+const uniq = arr => [...new Set(arr)];
+
+// Level 1: target=29 means "all 29 Danish letters mastered" — handled
+// specially in checkComplete (target acts as a fallback only).
+const LEVELS = [
+  { id: 1,  name: "Bogstaver",            target: 29, baseSpeed: 44, speedInc: 2.0, mode: "letter", maxBlocks: 3, spawnGap: 950  },
+  { id: 2,  name: "Stavelser & korte ord",target: 30, baseSpeed: 42, speedInc: 1.8, mode: "word",   src: uniq(SYLLABLES_L2),  maxBlocks: 2, spawnGap: 1300 },
+  { id: 3,  name: "2-3 bogstavs ord",     target: 30, baseSpeed: 40, speedInc: 1.7, mode: "word",   src: uniq(WORDS_L3),       maxBlocks: 2, spawnGap: 1400 },
+  { id: 4,  name: "3-4 bogstavs ord",     target: 30, baseSpeed: 38, speedInc: 1.6, mode: "word",   src: uniq(WORDS_L4),       maxBlocks: 2, spawnGap: 1600 },
+  { id: 5,  name: "4-5 bogstavs ord",     target: 25, baseSpeed: 36, speedInc: 1.5, mode: "word",   src: uniq(WORDS_L5),       maxBlocks: 2, spawnGap: 1800 },
+  { id: 6,  name: "Top 100 ord",          target: 25, baseSpeed: 34, speedInc: 1.4, mode: "word",   src: uniq(WORDS_TOP100),   maxBlocks: 2, spawnGap: 1900 },
+  { id: 7,  name: "Top 500 ord",          target: 25, baseSpeed: 32, speedInc: 1.3, mode: "word",   src: uniq([...WORDS_TOP100, ...WORDS_TOP500_EXTRA]),                          maxBlocks: 2, spawnGap: 2000 },
+  { id: 8,  name: "Top 1000 ord",         target: 25, baseSpeed: 32, speedInc: 1.3, mode: "word",   src: uniq([...WORDS_TOP100, ...WORDS_TOP500_EXTRA, ...WORDS_TOP1000_EXTRA]),  maxBlocks: 2, spawnGap: 2100 },
+  { id: 9,  name: "3-ords sætninger",     target: 12, baseSpeed: 26, speedInc: 0.9, mode: "sent",   src: uniq(SENTENCES_3),    maxBlocks: 1, spawnGap: 2700 },
+  { id: 10, name: "4-ords sætninger",     target: 12, baseSpeed: 24, speedInc: 0.8, mode: "sent",   src: uniq(SENTENCES_4),    maxBlocks: 1, spawnGap: 3100 },
+  { id: 11, name: "5-ords sætninger",     target: 10, baseSpeed: 22, speedInc: 0.7, mode: "sent",   src: uniq(SENTENCES_5),    maxBlocks: 1, spawnGap: 3500 },
+  { id: 12, name: "Tal og symboler",      target: 18, baseSpeed: 30, speedInc: 1.1, mode: "sent",   src: uniq(NUMBERS_SYMBOLS), maxBlocks: 2, spawnGap: 2000 }
+];
+
+// Level 1: bogstaver der skal mestres (5x hver) for at klare niveau 1.
+// Hele det danske alfabet i samme rækkefølge som sidste bølge.
+const LEVEL1_TARGET_LETTERS = ['f','j','d','k','s','l','a','e','i','r','u','t','n','g','h','o','m','v','b','c','p','y','æ','ø','å','q','w','x','z'];
+const LEVEL1_REQUIRED_HITS = 5;
+
+const STATE = {
+  player: "",
+  stats: null,                  // loaded from cookie
+  level: null,                  // current level definition
+  levelHits: 0,                 // blocks completed this run
+  totalLevelLetters: 0,         // letters typed correctly this run
+  totalLevelMissed: 0,
+  score: 0,
+  lives: 5,
+  pointsToNextLife: 500,
+  blocks: [],
+  particles: [],
+  letterCounts: {},             // level 1: { 'a': 4, 'f': 7, ... }
+  paused: false,
+  running: false,
+  lastSpawn: 0,
+  lastFrame: 0,
+  rng: Math.random
+};
+
+const MAX_LIVES = 5;
+const POINTS_PER_LIFE = 500;
+const STORAGE_KEY = "dt_player_v1";
+const COOKIE_DAYS = 365 * 2;
+
+/* -------------------- Persistence (cookie + localStorage)
+   We store in BOTH so the user gets reliable saves across reloads.
+   Browsers block cookies on file:// — localStorage works there too,
+   so it's the primary store. The cookie is best-effort.
+   Clearing browser data wipes both, matching the requested behaviour
+   ("deleting the cookie will cause the user to lose his stats").
+   -------------------------------------------------------------- */
+
+function setCookie(name, value, days) {
+  try {
+    const exp = new Date(Date.now() + days * 86400 * 1000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${exp}; path=/; SameSite=Strict`;
+  } catch (e) { /* ignore — file:// or sandbox */ }
+}
+function getCookie(name) {
+  try {
+    const m = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/[.$?*|{}()[\]\\\/+^]/g, "\\$&") + "=([^;]*)"));
+    return m ? decodeURIComponent(m[1]) : null;
+  } catch (e) { return null; }
+}
+
+function loadStats() {
+  // Try localStorage first (works on file://), then cookie.
+  let raw = null;
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+  if (!raw) raw = getCookie(STORAGE_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+function saveStats() {
+  if (!STATE.stats) return;
+  const data = JSON.stringify(STATE.stats);
+  try { localStorage.setItem(STORAGE_KEY, data); } catch (e) {}
+  setCookie(STORAGE_KEY, data, COOKIE_DAYS);
+}
+function newStatsFor(name) {
+  return {
+    name,
+    created: Date.now(),
+    lastPlayed: Date.now(),
+    totalScore: 0,
+    totalLetters: 0,
+    totalMissed: 0,
+    totalBlocks: 0,
+    totalSeconds: 0,
+    highestLevel: 1,
+    perLevel: {},                 // { "1": { hits, score, plays, best } }
+  };
+}
+
+function getLevelStats(levelId) {
+  const k = String(levelId);
+  if (!STATE.stats.perLevel[k]) {
+    STATE.stats.perLevel[k] = { hits: 0, score: 0, plays: 0, best: 0, completed: 0 };
+  }
+  return STATE.stats.perLevel[k];
+}
+
+/* -------------------- Word picking -------------------- */
+
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function currentLetterPool() {
+  // Pool grows in waves: each wave unlocks once every letter in the
+  // previous wave has been hit at least 3 times. This keeps the player
+  // on a manageable set until they've internalised the new keys before
+  // adding more.
+  let wave = 0;
+  for (let i = 0; i < LETTER_WAVES.length - 1; i++) {
+    const next = LETTER_WAVES[i + 1];
+    // Unlock next wave when the *new* letters (next-current) have been
+    // introduced — i.e. when current pool's least-mastered letter is ≥3.
+    const prev = LETTER_WAVES[i];
+    const minPrev = Math.min(...prev.map(l => STATE.letterCounts[l] || 0));
+    if (minPrev >= 3) wave = i + 1;
+    else break;
+  }
+  return LETTER_WAVES[wave];
+}
+
+function level1RemainingLetters() {
+  // Letters in the master target list still under the required count.
+  return LEVEL1_TARGET_LETTERS.filter(
+    l => (STATE.letterCounts[l] || 0) < LEVEL1_REQUIRED_HITS
+  );
+}
+
+function isLevel1Complete() {
+  return level1RemainingLetters().length === 0;
+}
+
+function spawnNextItem() {
+  const lvl = STATE.level;
+  if (lvl.mode === "letter") {
+    const pool = currentLetterPool();
+    // Prefer the least-practised letter from the pool 70% of the time;
+    // pure random the other 30% so the player still gets variety.
+    if (Math.random() < 0.7) {
+      let minC = Infinity;
+      for (const l of pool) {
+        const c = STATE.letterCounts[l] || 0;
+        if (c < LEVEL1_REQUIRED_HITS && c < minC) minC = c;
+      }
+      if (minC === Infinity) return pickRandom(pool); // pool fully mastered
+      const cands = pool.filter(l => (STATE.letterCounts[l] || 0) === minC);
+      return cands[Math.floor(Math.random() * cands.length)];
+    }
+    return pickRandom(pool);
+  }
+  // For words and sentences, avoid spawning the same string back-to-back if possible
+  for (let tries = 0; tries < 5; tries++) {
+    const cand = pickRandom(lvl.src);
+    if (!STATE.blocks.some(b => b.text === cand)) return cand;
+  }
+  return pickRandom(lvl.src);
+}
+
+/* -------------------- Keyboard guide --------------------
+   Persistent visualisation of the Danish keyboard with each key
+   colour-coded by which finger should hit it. The next character to
+   type is highlighted, and a Danish finger-name hint is shown below.
+   ----------------------------------------------------------------- */
+
+// Finger map: each entry is [char, fingerClass]
+// fingerClass = pinky | ring | middle | index | thumb
+const KB_LAYOUT = {
+  top: [['q','pinky','L'],['w','ring','L'],['e','middle','L'],['r','index','L'],['t','index','L'],
+        ['y','index','R'],['u','index','R'],['i','middle','R'],['o','ring','R'],['p','pinky','R'],['å','pinky','R']],
+  mid: [['a','pinky','L'],['s','ring','L'],['d','middle','L'],['f','index','L'],['g','index','L'],
+        ['h','index','R'],['j','index','R'],['k','middle','R'],['l','ring','R'],['æ','pinky','R'],['ø','pinky','R']],
+  // Bottom row matches Danish QWERTY: < z x c v b n m , . -
+  bot: [['z','pinky','L'],['x','ring','L'],['c','middle','L'],['v','index','L'],['b','index','L'],
+        ['n','index','R'],['m','index','R'],[',','middle','R'],['.','ring','R'],['-','pinky','R']]
+};
+const FINGER_NAME_DA = { pinky: "lillefinger", ring: "ringfinger", middle: "langemand", index: "pegefinger", thumb: "tommelfinger" };
+const SIDE_NAME_DA   = { L: "venstre", R: "højre" };
+
+// char -> { finger, side }
+const KEY_INFO = (() => {
+  const m = {};
+  for (const row of Object.values(KB_LAYOUT)) {
+    for (const [ch, finger, side] of row) m[ch] = { finger, side };
+  }
+  m[" "] = { finger: "thumb", side: null };
+  return m;
+})();
+
+const KEY_NODES = {};   // char -> DOM element
+
+function buildKeyboard() {
+  const rows = [["top","kb-row-top"],["mid","kb-row-mid"],["bot","kb-row-bot"]];
+  for (const [rk, rid] of rows) {
+    const el = document.getElementById(rid);
+    el.innerHTML = "";
+    for (const [ch, finger /*, side */] of KB_LAYOUT[rk]) {
+      const k = document.createElement("div");
+      k.className = `key f-${finger}`;
+      k.dataset.k = ch;
+      k.textContent = ch;
+      el.appendChild(k);
+      KEY_NODES[ch] = k;
+    }
+  }
+  // Spacebar already in HTML
+  const sp = document.querySelector('.key.space');
+  KEY_NODES[" "] = sp;
+}
+
+let _lastActiveKey = null;
+function nextTargetChar() {
+  // Among falling blocks, find the most relevant next character.
+  if (!STATE.running || STATE.paused) return null;
+  const active = STATE.blocks.find(b => b.state === "fall" && b.typed > 0);
+  if (active && active.typed < active.text.length) return active.text[active.typed].toLowerCase();
+  // Otherwise: lowest falling block (most urgent)
+  const falling = STATE.blocks.filter(b => b.state === "fall");
+  if (falling.length === 0) return null;
+  falling.sort((a,b) => b.y - a.y);
+  return falling[0].text[0].toLowerCase();
+}
+
+function updateKeyboardHighlight() {
+  const ch = nextTargetChar();
+  if (ch === _lastActiveKey) return;
+  if (_lastActiveKey != null && KEY_NODES[_lastActiveKey]) {
+    KEY_NODES[_lastActiveKey].classList.remove("active");
+  }
+  _lastActiveKey = ch;
+  const hint = document.getElementById("finger-hint");
+  const fhDot  = document.getElementById("fh-dot");
+  const fhText = document.getElementById("fh-text");
+  if (ch && KEY_NODES[ch]) {
+    KEY_NODES[ch].classList.add("active");
+    const info = KEY_INFO[ch] || {};
+    hint.classList.add("has-target");
+    fhDot.style.background = `var(--finger-${info.finger || "thumb"})`;
+    fhDot.style.boxShadow = `0 0 8px var(--finger-${info.finger || "thumb"})`;
+    if (ch === " ") {
+      fhText.textContent = "Brug tommelfingeren — mellemrum";
+    } else {
+      const sideTxt = info.side ? SIDE_NAME_DA[info.side] + " " : "";
+      const fingerTxt = FINGER_NAME_DA[info.finger] || "finger";
+      fhText.textContent = `Brug ${sideTxt}${fingerTxt} — ${ch.toUpperCase()}`;
+    }
+  } else {
+    hint.classList.remove("has-target");
+    fhDot.style.background = "var(--dim)";
+    fhDot.style.boxShadow = "none";
+    fhText.textContent = "Brug fingrene fra hjemmerækken (asdf jkl)";
+  }
+}
+
+function toggleKeyboard() {
+  const kb = document.getElementById("keyboard");
+  kb.classList.toggle("hidden-kb");
+  // After layout settles, re-fit canvas
+  requestAnimationFrame(() => { resizeCanvas(); });
+}
+
+function setKeyboardVisible(visible) {
+  const kb = document.getElementById("keyboard");
+  if (visible) kb.classList.remove("hidden-kb");
+  else kb.classList.add("hidden-kb");
+  requestAnimationFrame(() => { resizeCanvas(); });
+}
+
+/* -------------------- Canvas / rendering -------------------- */
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+let cssW = 0, cssH = 0;
+
+function resizeCanvas() {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  cssW = canvas.clientWidth;
+  cssH = canvas.clientHeight;
+  canvas.width  = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener("resize", resizeCanvas);
+
+function fontSizeForBlock(text) {
+  // Single letters big; words medium; sentences smaller; auto-shrink to fit width.
+  const len = text.length;
+  let size;
+  if (len <= 2) size = Math.min(110, Math.max(56, cssW * 0.10));
+  else if (len <= 6) size = Math.min(70, Math.max(38, cssW * 0.06));
+  else if (len <= 14) size = Math.min(48, Math.max(28, cssW * 0.045));
+  else size = Math.min(36, Math.max(20, cssW * 0.032));
+  // Ensure text fits horizontally at this font size
+  const maxW = cssW * 0.88;
+  ctx.font = `600 ${size}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  while (size > 14 && ctx.measureText(text).width > maxW) {
+    size -= 2;
+    ctx.font = `600 ${size}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  }
+  return size;
+}
+
+function makeBlock(text) {
+  const fontSize = fontSizeForBlock(text);
+  ctx.font = `600 ${fontSize}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  const width = ctx.measureText(text).width;
+  const margin = 30;
+  const x = margin + Math.random() * Math.max(10, cssW - 2 * margin - width);
+  const y = -fontSize;
+  // Speed grows with hits in level
+  const speed = STATE.level.baseSpeed + STATE.levelHits * STATE.level.speedInc;
+  return {
+    text, typed: 0, x, y,
+    fontSize, width,
+    speed,
+    state: "fall",
+    explode: 0
+  };
+}
+
+/* -------------------- Game flow -------------------- */
+
+function startLevel(levelId) {
+  const lvl = LEVELS.find(l => l.id === levelId);
+  if (!lvl) return;
+  // First time a player starts level 1, walk them through the keyboard.
+  if (lvl.id === 1 && STATE.stats && !STATE.stats.tutorialSeen) {
+    showTutorial(() => actuallyStartLevel(levelId));
+    return;
+  }
+  actuallyStartLevel(levelId);
+}
+
+function actuallyStartLevel(levelId) {
+  const lvl = LEVELS.find(l => l.id === levelId);
+  if (!lvl) return;
+  STATE.level = lvl;
+  STATE.levelHits = 0;
+  STATE.totalLevelLetters = 0;
+  STATE.totalLevelMissed = 0;
+  STATE.score = 0;
+  STATE.lives = MAX_LIVES;
+  STATE.pointsToNextLife = POINTS_PER_LIFE;
+  STATE.blocks = [];
+  STATE.particles = [];
+  STATE.letterCounts = {};
+  STATE.lastSpawn = 0;
+  STATE.runStart = performance.now();
+
+  const ls = getLevelStats(lvl.id);
+  ls.plays += 1;
+
+  STATE.running = true;
+  STATE.paused = false;
+  // Keyboard guide is for the early levels only — once students reach
+  // word/sentence territory they should be off training wheels.
+  setKeyboardVisible(lvl.id <= 4);
+  hideAll();
+  updateHud();
+  resizeCanvas();
+  STATE.lastFrame = performance.now();
+  requestAnimationFrame(frame);
+}
+
+function endRun(reason) {
+  STATE.running = false;
+  const elapsed = (performance.now() - STATE.runStart) / 1000;
+  STATE.stats.totalSeconds += elapsed;
+  STATE.stats.totalLetters += STATE.totalLevelLetters;
+  STATE.stats.totalMissed  += STATE.totalLevelMissed;
+  STATE.stats.totalScore   += STATE.score;
+  STATE.stats.totalBlocks  += STATE.levelHits;
+  STATE.stats.lastPlayed = Date.now();
+
+  const ls = getLevelStats(STATE.level.id);
+  ls.hits += STATE.levelHits;
+  ls.score += STATE.score;
+  if (STATE.score > ls.best) ls.best = STATE.score;
+
+  if (reason === "complete") {
+    ls.completed += 1;
+    // Notificér SaaS-wrapper om level-completion
+    if (window.parent !== window) {
+      window.parent.postMessage({
+        type: "th:levelComplete",
+        game: "keyboard",
+        levelId: STATE.level.id,
+        score: STATE.score,
+        lettersCorrect: STATE.totalLevelLetters,
+        lettersWrong: STATE.totalLevelMissed,
+        durationMs: Math.round(performance.now() - STATE.runStart),
+        completed: true
+      }, "*");
+    }
+    if (STATE.level.id >= STATE.stats.highestLevel) {
+      STATE.stats.highestLevel = Math.min(LEVELS.length, STATE.level.id + 1);
+    }
+    saveStats();
+    showLevelup();
+  } else {
+    saveStats();
+    showGameover();
+  }
+}
+
+function frame(now) {
+  if (!STATE.running) return;
+  const dt = Math.min(0.05, (now - STATE.lastFrame) / 1000);
+  STATE.lastFrame = now;
+  if (!STATE.paused) update(dt, now);
+  render();
+  updateKeyboardHighlight();
+  requestAnimationFrame(frame);
+}
+
+function update(dt, now) {
+  // Spawn
+  const lvl = STATE.level;
+  const fallingCount = STATE.blocks.filter(b => b.state === "fall").length;
+  if (fallingCount < lvl.maxBlocks && (now - STATE.lastSpawn) > lvl.spawnGap) {
+    const lowest = STATE.blocks.filter(b => b.state === "fall").reduce((m, b) => Math.max(m, b.y), -Infinity);
+    if (fallingCount === 0 || lowest > cssH * 0.20) {
+      STATE.blocks.push(makeBlock(spawnNextItem()));
+      STATE.lastSpawn = now;
+    }
+  }
+
+  // Move
+  for (const b of STATE.blocks) {
+    if (b.shake > 0) b.shake = Math.max(0, b.shake - dt);
+    if (b.state === "fall") {
+      b.y += b.speed * dt;
+      if (b.y > cssH - 6) {
+        // Missed
+        b.state = "miss";
+        loseLife(b);
+      }
+    } else if (b.state === "explode") {
+      b.explode += dt;
+    }
+  }
+  // Cleanup
+  STATE.blocks = STATE.blocks.filter(b => {
+    if (b.state === "explode" && b.explode > 0.55) return false;
+    if (b.state === "miss") return false;
+    return true;
+  });
+
+  // Particles
+  for (const p of STATE.particles) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 380 * dt;
+    p.life -= dt;
+  }
+  STATE.particles = STATE.particles.filter(p => p.life > 0);
+}
+
+function render() {
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  // Subtle ground line
+  ctx.save();
+  ctx.strokeStyle = "rgba(255, 92, 122, 0.18)";
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 8]);
+  ctx.beginPath();
+  ctx.moveTo(0, cssH - 3);
+  ctx.lineTo(cssW, cssH - 3);
+  ctx.stroke();
+  ctx.restore();
+
+  // Blocks
+  for (const b of STATE.blocks) {
+    if (b.state === "fall") drawBlock(b);
+    else if (b.state === "explode") drawExplosion(b);
+  }
+
+  // Particles
+  for (const p of STATE.particles) {
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawBlock(b) {
+  ctx.font = `600 ${b.fontSize}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  ctx.textBaseline = "top";
+
+  // Apply shake offset on wrong-key
+  const shakeX = b.shake > 0 ? Math.sin(b.shake * 80) * 6 : 0;
+
+  // Highlight ring if this block is "active" (typed > 0)
+  const active = b.typed > 0;
+  if (active) {
+    ctx.save();
+    // Red tint while shaking, accent tint otherwise
+    ctx.fillStyle = b.shake > 0 ? "rgba(255,92,122,0.18)" : "rgba(97,240,200,0.06)";
+    const pad = 12;
+    const r = 8;
+    roundRect(ctx, b.x + shakeX - pad, b.y - pad/2, b.width + 2*pad, b.fontSize + pad, r);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Draw typed in accent, untyped in fg, char by char to keep alignment
+  const text = b.text;
+  let dx = b.x + shakeX;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (i < b.typed) {
+      ctx.fillStyle = getCss("--typed");
+      ctx.shadowColor = getCss("--typed");
+      ctx.shadowBlur = 8;
+    } else {
+      ctx.fillStyle = getCss("--untyped");
+      ctx.shadowColor = "rgba(0,0,0,0.6)";
+      ctx.shadowBlur = 4;
+    }
+    ctx.fillText(ch, dx, b.y);
+    dx += ctx.measureText(ch).width;
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawExplosion(b) {
+  // ASCII explosion sequence at the block's center
+  const frames = ["x X x ·", "X * X *", "* · * ·", "· · ·", " ·  · "];
+  const f = Math.min(frames.length - 1, Math.floor(b.explode / 0.11));
+  const txt = frames[f];
+  const size = Math.min(64, Math.max(28, b.fontSize * 0.9));
+  ctx.font = `700 ${size}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  ctx.textBaseline = "top";
+  ctx.fillStyle = getCss("--accent2");
+  ctx.shadowColor = getCss("--accent2");
+  ctx.shadowBlur = 14;
+  const w = ctx.measureText(txt).width;
+  const cx = b.x + b.width / 2;
+  ctx.fillText(txt, cx - w / 2, b.y);
+  ctx.shadowBlur = 0;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+let _cssCache = {};
+function getCss(varName) {
+  if (_cssCache[varName]) return _cssCache[varName];
+  const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  _cssCache[varName] = v;
+  return v;
+}
+
+/* -------------------- Input -------------------- */
+
+function keyToChar(e) {
+  // Returns the printable character produced by the key, with its
+  // exact case preserved. Spielet er case-sensitive: skift mellem
+  // store og små bogstaver tæller. Modifier/function keys give null.
+  const k = e.key;
+  if (k === " ") return " ";
+  if (k.length === 1) return k;
+  return null;
+}
+
+function handleKey(e) {
+  if (!STATE.running) return;
+  if (e.key === "Escape") { togglePause(); e.preventDefault(); return; }
+  if (e.key === "Tab")    {
+    // Open stats overlay; pause underlying game.
+    if (!STATE.paused) STATE.paused = true;
+    showStats(true);
+    e.preventDefault();
+    return;
+  }
+  // Ctrl/Cmd + K toggles the keyboard guide (plain K is reserved for typing)
+  if ((e.key === "k" || e.key === "K") && (e.ctrlKey || e.metaKey)) {
+    toggleKeyboard();
+    e.preventDefault();
+    return;
+  }
+  if (STATE.paused) return;
+  const ch = keyToChar(e);
+  if (!ch) return;
+
+  // Find an active (in-progress) block first; if any, only it can advance.
+  const active = STATE.blocks.find(b => b.state === "fall" && b.typed > 0);
+  if (active) {
+    const next = active.text[active.typed];           // case-sensitive
+    if (next === ch) {
+      active.typed += 1;
+      if (ch !== " ") { awardPoint(); recordLetter(ch); }
+      checkComplete(active);
+    } else {
+      wrongKey(ch, active);
+    }
+    e.preventDefault();
+    return;
+  }
+
+  // No active: pick any falling block whose first char matches (case-sensitive)
+  const candidates = STATE.blocks.filter(b => b.state === "fall" && b.text[0] === ch);
+  if (candidates.length === 0) {
+    // Only penalise if there were blocks the player could have hit.
+    if (STATE.blocks.some(b => b.state === "fall")) wrongKey(ch, null);
+    return;
+  }
+  // Prefer the lowest one (closest to ground)
+  candidates.sort((a, b) => b.y - a.y);
+  const target = candidates[0];
+  target.typed = 1;
+  if (ch !== " ") { awardPoint(); recordLetter(ch); }
+  checkComplete(target);
+  e.preventDefault();
+}
+
+function recordLetter(ch) {
+  // Track in-run letter mastery for level 1 progression.
+  // Use lowercase so any uppercase variants in future levels don't fragment counts.
+  const k = ch.toLowerCase();
+  STATE.letterCounts[k] = (STATE.letterCounts[k] || 0) + 1;
+}
+
+function wrongKey(typedCh, activeBlock) {
+  // Penalty: -1 point, never below zero.
+  if (STATE.score > 0) STATE.score -= 1;
+  STATE.totalLevelMissed += 1;
+  // Wrong key keeps the next-life counter as-is (you don't lose progress
+  // toward the next life — only points already earned).
+  updateHud();
+
+  // Visual cue 1: red glow flash around the playing field
+  const flash = document.getElementById("wrong-flash");
+  if (flash) {
+    flash.classList.remove("flash");
+    void flash.offsetWidth;          // restart animation
+    flash.classList.add("flash");
+  }
+
+  // Visual cue 2: floating "−1" near the score
+  const m1 = document.getElementById("minus-one");
+  if (m1) {
+    m1.classList.remove("show");
+    void m1.offsetWidth;
+    m1.classList.add("show");
+  }
+
+  // Visual cue 3: red flash on the wrong key (lookup is case-insensitive
+  // because the keyboard guide only displays lowercase glyphs)
+  if (typedCh && typedCh !== " ") {
+    const node = KEY_NODES[typedCh.toLowerCase()];
+    if (node) {
+      node.classList.add("wrong-key");
+      setTimeout(() => node.classList.remove("wrong-key"), 220);
+    }
+  }
+
+  // Visual cue 4: shake the active block (rendered by drawBlock)
+  if (activeBlock) activeBlock.shake = 0.28;
+}
+
+function awardPoint() {
+  STATE.score += 1;
+  STATE.totalLevelLetters += 1;
+  STATE.pointsToNextLife -= 1;
+  if (STATE.pointsToNextLife <= 0 && STATE.lives < MAX_LIVES) {
+    STATE.lives += 1;
+    STATE.pointsToNextLife = POINTS_PER_LIFE;
+    toast("+1 liv!");
+  } else if (STATE.pointsToNextLife <= 0) {
+    STATE.pointsToNextLife = POINTS_PER_LIFE;   // reset but don't add (already at max)
+  }
+  updateHud();
+}
+
+function checkComplete(b) {
+  if (b.typed >= b.text.length) {
+    explodeBlock(b);
+    STATE.levelHits += 1;
+    let done = false;
+    if (STATE.level.id === 1) {
+      // Level 1: must hit every letter ≥5 times before advancing.
+      done = isLevel1Complete();
+    } else {
+      done = STATE.levelHits >= STATE.level.target;
+    }
+    if (done) {
+      setTimeout(() => endRun("complete"), 600);
+    }
+    updateHud();
+  }
+}
+
+function explodeBlock(b) {
+  b.state = "explode";
+  b.explode = 0;
+  // Spawn particles
+  const cx = b.x + b.width / 2;
+  const cy = b.y + b.fontSize / 2;
+  const colors = [getCss("--accent"), getCss("--accent2"), "#ffffff"];
+  for (let i = 0; i < 24; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 120 + Math.random() * 240;
+    STATE.particles.push({
+      x: cx, y: cy,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 80,
+      size: 2 + Math.random() * 3,
+      life: 0.45 + Math.random() * 0.25,
+      maxLife: 0.7,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    });
+  }
+}
+
+function loseLife(b) {
+  STATE.lives -= 1;
+  STATE.totalLevelMissed += 1;
+  toast("✗ Mistede liv");
+  // small red burst
+  const cx = b.x + b.width / 2;
+  const cy = cssH - 12;
+  for (let i = 0; i < 14; i++) {
+    const a = -Math.PI/2 + (Math.random() - 0.5) * Math.PI;
+    const sp = 80 + Math.random() * 180;
+    STATE.particles.push({
+      x: cx, y: cy,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      size: 2 + Math.random() * 2,
+      life: 0.5, maxLife: 0.5,
+      color: getCss("--danger")
+    });
+  }
+  updateHud();
+  if (STATE.lives <= 0) {
+    setTimeout(() => endRun("dead"), 700);
+  }
+}
+
+document.addEventListener("keydown", handleKey);
+
+/* -------------------- HUD -------------------- */
+
+function updateHud() {
+  document.getElementById("hud-name").textContent  = STATE.player || "—";
+  document.getElementById("hud-score").textContent = STATE.score;
+  document.getElementById("hud-lives").textContent = "♥".repeat(Math.max(0, STATE.lives)) + "♡".repeat(Math.max(0, MAX_LIVES - STATE.lives));
+  document.getElementById("hud-level").textContent = STATE.level ? STATE.level.id : "—";
+  document.getElementById("hud-level-name").textContent = STATE.level ? STATE.level.name : "";
+
+  // Progress label depends on level type.
+  let progressTxt;
+  if (STATE.level && STATE.level.id === 1) {
+    const mastered = LEVEL1_TARGET_LETTERS.length - level1RemainingLetters().length;
+    progressTxt = `${mastered}/${LEVEL1_TARGET_LETTERS.length} bogstaver klar`;
+  } else if (STATE.level) {
+    const left = Math.max(0, STATE.level.target - STATE.levelHits);
+    progressTxt = `${left} tilbage`;
+  } else {
+    progressTxt = "";
+  }
+  const nl = STATE.lives < MAX_LIVES
+    ? `Næste liv om ${STATE.pointsToNextLife} · ${progressTxt}`
+    : `Liv fyldt · ${progressTxt}`;
+  document.getElementById("hud-nextlife").textContent = nl;
+}
+
+/* -------------------- Screens -------------------- */
+
+const SCREENS = ["welcome","menu","stats","pause","levelup","gameover","tutorial"];
+function hideAll() {
+  for (const s of SCREENS) {
+    document.getElementById("screen-" + s).classList.add("hidden");
+  }
+}
+function show(s) {
+  hideAll();
+  document.getElementById("screen-" + s).classList.remove("hidden");
+}
+
+function showWelcome() {
+  show("welcome");
+  document.getElementById("name-input").value = STATE.player || "";
+  setTimeout(() => document.getElementById("name-input").focus(), 50);
+}
+
+function showMenu() {
+  show("menu");
+  document.getElementById("menu-greeting").textContent = `Hej ${STATE.player}!`;
+  buildLevelGrid();
+}
+
+function buildLevelGrid() {
+  const grid = document.getElementById("level-grid");
+  grid.innerHTML = "";
+  const highest = STATE.stats.highestLevel || 1;
+  for (const lvl of LEVELS) {
+    const div = document.createElement("div");
+    const locked = lvl.id > highest;
+    div.className = "lvl" + (locked ? " locked" : "");
+    div.innerHTML = `<div class="num">${lvl.id}</div><div class="lbl">${lvl.name}</div>`;
+    if (!locked) {
+      div.addEventListener("click", () => startLevel(lvl.id));
+    }
+    grid.appendChild(div);
+  }
+  // "Spil videre" button starts at highest unlocked level
+  document.getElementById("btn-menu-play").onclick = () => startLevel(highest);
+}
+
+function buildTutorialContent() {
+  // Color legend
+  const legend = document.getElementById("tutorial-legend");
+  legend.innerHTML = "";
+  const items = [
+    ["pinky",  "Lillefinger"],
+    ["ring",   "Ringfinger"],
+    ["middle", "Langemand"],
+    ["index",  "Pegefinger"],
+    ["thumb",  "Tommelfinger (mellemrum)"]
+  ];
+  for (const [f, name] of items) {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; align-items:center; gap:10px; font-size:13px;";
+    row.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:var(--finger-${f}); box-shadow:0 0 8px var(--finger-${f});"></span><span>${name}</span>`;
+    legend.appendChild(row);
+  }
+  // Mini keyboard preview (no active highlight, no toggle)
+  const kbWrap = document.getElementById("tutorial-kb");
+  kbWrap.innerHTML = "";
+  const rowDefs = [["top","r-top"],["mid","r-mid"],["bot","r-bot"]];
+  for (const [rk, cls] of rowDefs) {
+    const row = document.createElement("div");
+    row.className = "kb-row " + cls;
+    for (const [ch, finger /*, side */] of KB_LAYOUT[rk]) {
+      const k = document.createElement("div");
+      k.className = `key f-${finger}`;
+      k.textContent = ch;
+      row.appendChild(k);
+    }
+    kbWrap.appendChild(row);
+  }
+  const spcRow = document.createElement("div");
+  spcRow.className = "kb-row r-spc";
+  spcRow.innerHTML = `<div class="key f-thumb space">mellemrum</div>`;
+  kbWrap.appendChild(spcRow);
+}
+
+function showTutorial(onClose) {
+  buildTutorialContent();
+  show("tutorial");
+  document.getElementById("btn-tutorial-go").onclick = () => {
+    if (STATE.stats) { STATE.stats.tutorialSeen = true; saveStats(); }
+    onClose && onClose();
+  };
+  document.getElementById("btn-tutorial-skip").onclick = () => {
+    if (STATE.stats) { STATE.stats.tutorialSeen = true; saveStats(); }
+    onClose && onClose();
+  };
+}
+
+function showStats(returnToGame) {
+  show("stats");
+  document.getElementById("stats-name").textContent = STATE.player;
+  const o = document.getElementById("stats-overall");
+  const s = STATE.stats;
+  const acc = s.totalLetters + s.totalMissed > 0
+    ? Math.round((s.totalLetters / (s.totalLetters + s.totalMissed)) * 100) + "%"
+    : "—";
+  o.innerHTML = `
+    <div class="stat-row"><span class="k">Højeste niveau</span><span class="v">${s.highestLevel}</span></div>
+    <div class="stat-row"><span class="k">Samlet point</span><span class="v">${s.totalScore}</span></div>
+    <div class="stat-row"><span class="k">Bogstaver skrevet</span><span class="v">${s.totalLetters}</span></div>
+    <div class="stat-row"><span class="k">Forkerte tryk</span><span class="v">${s.totalMissed}</span></div>
+    <div class="stat-row"><span class="k">Præcision</span><span class="v">${acc}</span></div>
+    <div class="stat-row"><span class="k">Spilletid</span><span class="v">${formatSeconds(s.totalSeconds)}</span></div>
+  `;
+  const pl = document.getElementById("stats-perlevel");
+  pl.innerHTML = "";
+  for (const lvl of LEVELS) {
+    const ls = s.perLevel[String(lvl.id)];
+    if (!ls || ls.plays === 0) continue;
+    const row = document.createElement("div");
+    row.className = "stat-row";
+    row.innerHTML = `<span class="k">${lvl.id}. ${lvl.name}</span><span class="v">${ls.best} pt · ${ls.completed}/${ls.plays} klaret</span>`;
+    pl.appendChild(row);
+  }
+  document.getElementById("btn-stats-back").onclick = () => {
+    if (returnToGame && STATE.running) {
+      hideAll();
+      STATE.paused = false;
+      STATE.lastFrame = performance.now();
+    } else {
+      showMenu();
+    }
+  };
+}
+
+function formatSeconds(s) {
+  s = Math.floor(s);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (h) return `${h}t ${m}m`;
+  if (m) return `${m}m ${ss}s`;
+  return `${ss}s`;
+}
+
+function showLevelup() {
+  show("levelup");
+  document.getElementById("levelup-text").textContent = `Niveau ${STATE.level.id} klaret`;
+  document.getElementById("levelup-summary").textContent =
+    `${STATE.score} point · ${STATE.totalLevelLetters} bogstaver · ${STATE.lives} liv tilbage`;
+  const next = LEVELS.find(l => l.id === STATE.level.id + 1);
+  document.getElementById("btn-levelup-next").style.display = next ? "" : "none";
+  document.getElementById("btn-levelup-next").onclick = () => next && startLevel(next.id);
+}
+
+function showGameover() {
+  show("gameover");
+  document.getElementById("gameover-summary").textContent =
+    `${STATE.score} point · ${STATE.totalLevelLetters} bogstaver · niveau ${STATE.level.id}`;
+  document.getElementById("btn-gameover-retry").onclick = () => startLevel(STATE.level.id);
+}
+
+function togglePause() {
+  if (!STATE.running) return;
+  STATE.paused = !STATE.paused;
+  if (STATE.paused) show("pause");
+  else { hideAll(); STATE.lastFrame = performance.now(); }
+}
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 1200);
+}
+
+/* -------------------- Wire up buttons -------------------- */
+
+document.getElementById("btn-welcome-start").addEventListener("click", () => {
+  const v = (document.getElementById("name-input").value || "").trim().slice(0, 20);
+  if (!v) { document.getElementById("name-input").focus(); return; }
+  STATE.player = v;
+  STATE.stats = loadStats();
+  if (!STATE.stats || STATE.stats.name !== v) {
+    STATE.stats = newStatsFor(v);
+    saveStats();
+  } else {
+    saveStats();
+  }
+  showMenu();
+});
+
+document.getElementById("name-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("btn-welcome-start").click();
+});
+
+document.getElementById("btn-menu-stats").addEventListener("click", () => showStats(false));
+document.getElementById("btn-menu-name").addEventListener("click", () => showWelcome());
+document.getElementById("btn-menu-tutorial").addEventListener("click", () => showTutorial(showMenu));
+
+document.getElementById("btn-stats-reset").addEventListener("click", () => {
+  if (!confirm("Slet alle stats for " + STATE.player + "?")) return;
+  STATE.stats = newStatsFor(STATE.player);
+  saveStats();
+  showMenu();
+});
+
+document.getElementById("btn-pause-resume").addEventListener("click", () => togglePause());
+document.getElementById("btn-pause-quit").addEventListener("click", () => {
+  STATE.running = false;
+  showMenu();
+});
+
+document.getElementById("btn-levelup-menu").addEventListener("click", () => showMenu());
+document.getElementById("btn-gameover-menu").addEventListener("click", () => showMenu());
+
+/* -------------------- Boot -------------------- */
+
+(function boot() {
+  buildKeyboard();
+  document.getElementById("kb-toggle").addEventListener("click", toggleKeyboard);
+  resizeCanvas();
+  // Try to recover a previous player from cookie
+  const existing = loadStats();
+  if (existing && existing.name) {
+    STATE.player = existing.name;
+    STATE.stats = existing;
+    showMenu();
+  } else {
+    showWelcome();
+  }
+})();
+</script>
+</body>
+</html>

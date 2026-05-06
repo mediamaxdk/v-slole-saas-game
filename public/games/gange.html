@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Gange Helten — dansk gangetabelspil</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --bg2: #11151d;
+    --fg: #e8eef5;
+    --dim: #6b7a90;
+    --accent: #61f0c8;
+    --accent2: #ffd166;
+    --danger: #ff5c7a;
+    --typed: #61f0c8;
+    --untyped: #e8eef5;
+    --equals: #8aa6c0;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    height: 100%; width: 100%;
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+  }
+  #game { position: fixed; inset: 0; }
+  canvas { display: block; width: 100%; height: 100%; background:
+    radial-gradient(ellipse at 50% 0%, #15202d 0%, var(--bg) 70%);
+  }
+
+  .hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 12px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    pointer-events: none;
+    font-size: 14px;
+    text-shadow: 0 0 6px rgba(0,0,0,0.8);
+    z-index: 4;
+  }
+  .hud .group { display: flex; gap: 18px; align-items: center; }
+  .hud .label { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
+  .hud .val { color: var(--fg); font-size: 18px; font-weight: 600; margin-left: 4px; }
+  .hud .lives { color: var(--danger); letter-spacing: 2px; font-size: 18px; }
+  .hud .level-name { color: var(--accent2); font-size: 12px; }
+  .hud .next-life { color: var(--dim); font-size: 11px; }
+
+  .overlay {
+    position: absolute; inset: 0;
+    background: rgba(8,11,16,0.92);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 20;
+  }
+  .overlay.hidden { display: none; }
+  .panel {
+    background: var(--bg2);
+    border: 1px solid rgba(120,160,200,0.15);
+    border-radius: 14px;
+    padding: 32px 36px;
+    width: min(560px, 92vw);
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  }
+  .panel h1 {
+    margin: 0 0 6px;
+    font-size: 28px;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+  }
+  .panel h2 {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: var(--dim);
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .panel p { color: var(--fg); line-height: 1.5; margin: 12px 0; font-size: 14px; }
+  .panel small { color: var(--dim); }
+
+  .row { display: flex; gap: 10px; margin: 12px 0; }
+  .btn {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid rgba(120,160,200,0.25);
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    letter-spacing: 0.04em;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary {
+    background: var(--accent);
+    color: #0b1218;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .btn.primary:hover { background: #7af2d4; color: #0b1218; }
+  .btn.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.danger { color: var(--danger); border-color: rgba(255,92,122,0.4); }
+  .btn.danger:hover { background: var(--danger); color: #fff; }
+
+  input[type="text"] {
+    background: #0b0e14;
+    border: 1px solid rgba(120,160,200,0.25);
+    color: var(--fg);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 16px;
+    width: 100%;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+
+  .levels {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+    gap: 8px;
+    margin: 14px 0 6px;
+  }
+  .lvl {
+    background: #0d1219;
+    border: 1px solid rgba(120,160,200,0.12);
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .lvl:hover { border-color: var(--accent); }
+  .lvl.locked { opacity: 0.35; cursor: not-allowed; }
+  .lvl.locked:hover { border-color: rgba(120,160,200,0.12); }
+  .lvl .num { font-size: 22px; color: var(--accent2); font-weight: 600; }
+  .lvl .lbl { font-size: 10px; color: var(--dim); margin-top: 4px; letter-spacing: 0.04em; }
+  .lvl.mix .num { color: var(--accent); }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 18px;
+    margin: 12px 0;
+  }
+  .stat-row {
+    display: flex; justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dashed rgba(120,160,200,0.1);
+    font-size: 13px;
+  }
+  .stat-row .k { color: var(--dim); }
+  .stat-row .v { color: var(--fg); font-weight: 600; }
+
+  /* Mix-vælger */
+  .mix-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    margin: 14px 0;
+  }
+  .mix-cell {
+    background: #0d1219;
+    border: 2px solid rgba(120,160,200,0.18);
+    border-radius: 10px;
+    padding: 14px 4px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.12s;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dim);
+    user-select: none;
+  }
+  .mix-cell:hover { border-color: rgba(97,240,200,0.4); }
+  .mix-cell .check {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--dim);
+    margin-top: 4px;
+    letter-spacing: 0.04em;
+  }
+  .mix-cell.active {
+    background: rgba(97,240,200,0.10);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .mix-cell.active .check { color: var(--accent); }
+  .mix-summary {
+    color: var(--dim);
+    font-size: 12px;
+    margin: 8px 0;
+    letter-spacing: 0.04em;
+  }
+  .mix-summary.warn { color: var(--danger); }
+
+  .toast {
+    position: absolute;
+    top: 60px; left: 50%; transform: translateX(-50%);
+    background: rgba(97,240,200,0.12);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 30;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  .toast.show { opacity: 1; }
+
+  .pause-hint {
+    position: absolute;
+    bottom: 14px; left: 50%; transform: translateX(-50%);
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  /* Wrong-key visual cues */
+  #wrong-flash {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 28%, rgba(255,92,122,0.40) 100%);
+    opacity: 0;
+    z-index: 5;
+  }
+  #wrong-flash.flash { animation: wrongFlash 0.30s ease-out; }
+  @keyframes wrongFlash {
+    0%   { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  #minus-one {
+    position: absolute;
+    top: 48px; right: 28px;
+    color: var(--danger);
+    font-weight: 700;
+    font-size: 22px;
+    pointer-events: none;
+    opacity: 0;
+    text-shadow: 0 0 8px rgba(0,0,0,0.7);
+    z-index: 6;
+  }
+  #minus-one.show { animation: minusOne 0.65s ease-out; }
+  @keyframes minusOne {
+    0%   { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-34px); }
+  }
+
+  @media (max-width: 480px) {
+    .hud { padding: 8px 12px; font-size: 12px; }
+    .hud .val { font-size: 15px; }
+    .panel { padding: 24px 20px; }
+    .panel h1 { font-size: 22px; }
+    .mix-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <canvas id="canvas"></canvas>
+
+  <div class="hud" id="hud">
+    <div class="group">
+      <div><span class="label">Spiller</span><span class="val" id="hud-name">—</span></div>
+      <div><span class="label">Niveau</span><span class="val" id="hud-level">1</span> <span class="level-name" id="hud-level-name">1-tabellen</span></div>
+    </div>
+    <div class="group">
+      <div><span class="label">Point</span><span class="val" id="hud-score">0</span></div>
+      <div class="next-life" id="hud-nextlife">Næste liv om 500</div>
+      <div><span class="label">Liv</span><span class="lives" id="hud-lives">♥♥♥♥♥</span></div>
+    </div>
+  </div>
+
+  <div class="pause-hint">ESC pause · TAB stats</div>
+  <div class="toast" id="toast"></div>
+  <div id="wrong-flash"></div>
+  <div id="minus-one">−1</div>
+
+  <!-- Welcome / name input -->
+  <div class="overlay" id="screen-welcome">
+    <div class="panel">
+      <h1>Gange Helten</h1>
+      <h2>Lær gangetabellen</h2>
+      <p>Gangestykker falder ned. Skriv resultatet før de rammer bunden. Hvert ciffer giver et point.</p>
+      <p>Hvad hedder du?</p>
+      <input type="text" id="name-input" placeholder="Skriv dit navn" maxlength="20" autocomplete="off">
+      <div class="row" style="justify-content:flex-end; margin-top:18px">
+        <button class="btn primary" id="btn-welcome-start">Start</button>
+      </div>
+      <p style="margin-top:18px"><small>Dine point gemmes i denne browser. Sletter du browserdata, mister du dine stats.</small></p>
+    </div>
+  </div>
+
+  <!-- Main menu -->
+  <div class="overlay hidden" id="screen-menu">
+    <div class="panel">
+      <h1 id="menu-greeting">Hej!</h1>
+      <h2>Vælg niveau</h2>
+      <div class="levels" id="level-grid"></div>
+      <p><small id="menu-hint">Du kan kun starte på niveauer du har låst op.</small></p>
+      <div class="row" style="margin-top:18px; flex-wrap:wrap">
+        <button class="btn primary" id="btn-menu-play">Spil videre</button>
+        <button class="btn" id="btn-menu-stats">Mine stats</button>
+        <button class="btn" id="btn-menu-name">Skift navn</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="overlay hidden" id="screen-stats">
+    <div class="panel">
+      <h1>Stats</h1>
+      <h2 id="stats-name">—</h2>
+      <div class="stats-grid" id="stats-overall"></div>
+      <h2 style="margin-top:24px">Pr. niveau</h2>
+      <div id="stats-perlevel"></div>
+      <div class="row" style="justify-content:flex-end; margin-top:20px">
+        <button class="btn danger" id="btn-stats-reset">Nulstil stats</button>
+        <button class="btn primary" id="btn-stats-back">Tilbage</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div class="overlay hidden" id="screen-pause">
+    <div class="panel">
+      <h1>Pause</h1>
+      <p>Tryk ESC eller fortsæt.</p>
+      <div class="row" style="justify-content:flex-end; margin-top:14px">
+        <button class="btn" id="btn-pause-quit">Til menuen</button>
+        <button class="btn primary" id="btn-pause-resume">Fortsæt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level complete -->
+  <div class="overlay hidden" id="screen-levelup">
+    <div class="panel">
+      <h1>Godt klaret!</h1>
+      <h2 id="levelup-text">Niveau gennemført</h2>
+      <p id="levelup-summary"></p>
+      <div class="row" style="justify-content:flex-end; margin-top:14px">
+        <button class="btn" id="btn-levelup-menu">Til menuen</button>
+        <button class="btn primary" id="btn-levelup-next">Næste niveau →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game over -->
+  <div class="overlay hidden" id="screen-gameover">
+    <div class="panel">
+      <h1>Game over</h1>
+      <h2 id="gameover-text">Du løb tør for liv</h2>
+      <p id="gameover-summary"></p>
+      <div class="row" style="justify-content:flex-end; margin-top:14px">
+        <button class="btn" id="btn-gameover-menu">Til menuen</button>
+        <button class="btn primary" id="btn-gameover-retry">Prøv igen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MIX setup -->
+  <div class="overlay hidden" id="screen-mix">
+    <div class="panel" style="width: min(620px, 96vw)">
+      <h1>MIX</h1>
+      <h2>Vælg hvilke tabeller du vil øve</h2>
+      <p>Tryk på tallene for at slå dem til/fra. Du skal vælge mindst én tabel.</p>
+      <div class="mix-grid" id="mix-grid"></div>
+      <p class="mix-summary" id="mix-summary"></p>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="btn-mix-all-on">Alle til</button>
+        <button class="btn" id="btn-mix-all-off">Alle fra</button>
+      </div>
+      <div class="row" style="justify-content:flex-end; margin-top:14px">
+        <button class="btn" id="btn-mix-cancel">Tilbage</button>
+        <button class="btn primary" id="btn-mix-start">Start</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   GANGE HELTEN — dansk gangetabelspil
+   Single-file offline multiplication game, søsterprototype til Tastatur Helten.
+   ========================================================================= */
+
+/* -------------------- Niveauer -------------------- */
+
+const LEVELS = (() => {
+  const arr = [];
+  // Fall speed doubled relative to last tempo (≈2.4× original).
+  for (let n = 1; n <= 12; n++) {
+    arr.push({
+      id: n,
+      name: `${n}-tabellen`,
+      target: 20,
+      baseSpeed: 57.6 + (n - 1) * 1.68,
+      speedInc: 1.68 + (n - 1) * 0.096,
+      table: n,
+      maxBlocks: 1,
+      spawnGap: 1830
+    });
+  }
+  arr.push({
+    id: 13,
+    name: "MIX",
+    target: 25,
+    baseSpeed: 76.8,
+    speedInc: 2.64,
+    table: "mix",
+    maxBlocks: 1,
+    spawnGap: 1670
+  });
+  return arr;
+})();
+
+/* -------------------- State -------------------- */
+
+const STATE = {
+  player: "",
+  stats: null,
+  level: null,
+  levelHits: 0,
+  totalLevelDigits: 0,
+  totalLevelMissed: 0,
+  score: 0,
+  lives: 5,
+  pointsToNextLife: 500,
+  blocks: [],
+  particles: [],
+  paused: false,
+  running: false,
+  lastSpawn: 0,
+  lastFrame: 0,
+  runStart: 0,
+  // MIX-vælger: hvilke tabeller er slået til (default alle 1-12)
+  mixTables: new Set([1,2,3,4,5,6,7,8,9,10,11,12])
+};
+
+const MAX_LIVES = 5;
+const POINTS_PER_LIFE = 500;
+const STORAGE_KEY = "gh_player_v1";
+
+/* -------------------- Persistens -------------------- */
+
+function loadStats() {
+  let raw = null;
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+function saveStats() {
+  if (!STATE.stats) return;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE.stats)); } catch (e) {}
+}
+function newStatsFor(name) {
+  return {
+    name,
+    created: Date.now(),
+    lastPlayed: Date.now(),
+    totalScore: 0,
+    totalDigits: 0,
+    totalMissed: 0,
+    totalProblems: 0,
+    totalSeconds: 0,
+    highestLevel: 1,
+    perLevel: {},
+    mixTables: [1,2,3,4,5,6,7,8,9,10,11,12]
+  };
+}
+
+function getLevelStats(levelId) {
+  const k = String(levelId);
+  if (!STATE.stats.perLevel[k]) {
+    STATE.stats.perLevel[k] = { problems: 0, score: 0, plays: 0, best: 0, completed: 0 };
+  }
+  return STATE.stats.perLevel[k];
+}
+
+/* -------------------- Problem-generering -------------------- */
+
+function pickProblem() {
+  const lvl = STATE.level;
+  let table;
+  if (lvl.table === "mix") {
+    const enabled = [...STATE.mixTables];
+    if (enabled.length === 0) {
+      // Burde ikke kunne ske — start-knappen er disabled. Sikkerhedsnet:
+      table = 1 + Math.floor(Math.random() * 12);
+    } else {
+      table = enabled[Math.floor(Math.random() * enabled.length)];
+    }
+  } else {
+    table = lvl.table;
+  }
+  const m = 1 + Math.floor(Math.random() * 10);  // 1..10
+  // Halvdelen af gangene vendes der om (3×7 vs 7×3)
+  const reverse = Math.random() < 0.5;
+  const a = reverse ? m : table;
+  const b = reverse ? table : m;
+  return { a, b };
+}
+
+/* -------------------- Canvas / rendering -------------------- */
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+let cssW = 0, cssH = 0;
+
+function resizeCanvas() {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  cssW = canvas.clientWidth;
+  cssH = canvas.clientHeight;
+  canvas.width  = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener("resize", resizeCanvas);
+
+function fontSizeForBlock(text) {
+  // Big numbers — gangestykker skal være tydelige.
+  let size = Math.min(82, Math.max(40, cssW * 0.075));
+  const maxW = cssW * 0.88;
+  ctx.font = `700 ${size}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  while (size > 18 && ctx.measureText(text).width > maxW) {
+    size -= 2;
+    ctx.font = `700 ${size}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  }
+  return size;
+}
+
+function makeBlock() {
+  const p = pickProblem();
+  const prefix = `${p.a} × ${p.b} = `;
+  const answer = String(p.a * p.b);
+  const fullText = prefix + answer;
+  const fontSize = fontSizeForBlock(fullText);
+  ctx.font = `700 ${fontSize}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  const width = ctx.measureText(fullText).width;
+  const margin = 30;
+  const x = margin + Math.random() * Math.max(10, cssW - 2 * margin - width);
+  const y = -fontSize;
+  const speed = STATE.level.baseSpeed + STATE.levelHits * STATE.level.speedInc;
+  return {
+    prefix, answer,
+    typed: 0,
+    x, y, fontSize, width, speed,
+    state: "fall",
+    explode: 0,
+    shake: 0
+  };
+}
+
+/* -------------------- Game-loop -------------------- */
+
+function startLevel(levelId) {
+  const lvl = LEVELS.find(l => l.id === levelId);
+  if (!lvl) return;
+  // Special path: MIX viser opsætningsskærm før spillet starter
+  if (lvl.table === "mix") {
+    showMixSetup(() => actuallyStartLevel(levelId));
+    return;
+  }
+  actuallyStartLevel(levelId);
+}
+
+function actuallyStartLevel(levelId) {
+  const lvl = LEVELS.find(l => l.id === levelId);
+  if (!lvl) return;
+  STATE.level = lvl;
+  STATE.levelHits = 0;
+  STATE.totalLevelDigits = 0;
+  STATE.totalLevelMissed = 0;
+  STATE.score = 0;
+  STATE.lives = MAX_LIVES;
+  STATE.pointsToNextLife = POINTS_PER_LIFE;
+  STATE.blocks = [];
+  STATE.particles = [];
+  STATE.lastSpawn = 0;
+  STATE.runStart = performance.now();
+
+  const ls = getLevelStats(lvl.id);
+  ls.plays += 1;
+
+  STATE.running = true;
+  STATE.paused = false;
+  hideAll();
+  updateHud();
+  resizeCanvas();
+  STATE.lastFrame = performance.now();
+  requestAnimationFrame(frame);
+}
+
+function endRun(reason) {
+  STATE.running = false;
+  const elapsed = (performance.now() - STATE.runStart) / 1000;
+  STATE.stats.totalSeconds  += elapsed;
+  STATE.stats.totalDigits   += STATE.totalLevelDigits;
+  STATE.stats.totalMissed   += STATE.totalLevelMissed;
+  STATE.stats.totalScore    += STATE.score;
+  STATE.stats.totalProblems += STATE.levelHits;
+  STATE.stats.lastPlayed = Date.now();
+
+  const ls = getLevelStats(STATE.level.id);
+  ls.problems += STATE.levelHits;
+  ls.score += STATE.score;
+  if (STATE.score > ls.best) ls.best = STATE.score;
+
+  if (reason === "complete") {
+    ls.completed += 1;
+    // Notificér SaaS-wrapper om level-completion
+    if (window.parent !== window) {
+      window.parent.postMessage({
+        type: "th:levelComplete",
+        game: "multiplication",
+        levelId: STATE.level.id,
+        score: STATE.score,
+        lettersCorrect: STATE.totalLevelLetters,
+        lettersWrong: STATE.totalLevelMissed,
+        durationMs: Math.round(performance.now() - STATE.runStart),
+        completed: true
+      }, "*");
+    }
+    if (STATE.level.id >= STATE.stats.highestLevel) {
+      STATE.stats.highestLevel = Math.min(LEVELS.length, STATE.level.id + 1);
+    }
+    saveStats();
+    showLevelup();
+  } else {
+    saveStats();
+    showGameover();
+  }
+}
+
+function frame(now) {
+  if (!STATE.running) return;
+  const dt = Math.min(0.05, (now - STATE.lastFrame) / 1000);
+  STATE.lastFrame = now;
+  if (!STATE.paused) update(dt, now);
+  render();
+  requestAnimationFrame(frame);
+}
+
+function update(dt, now) {
+  const lvl = STATE.level;
+  const fallingCount = STATE.blocks.filter(b => b.state === "fall").length;
+  if (fallingCount < lvl.maxBlocks && (now - STATE.lastSpawn) > lvl.spawnGap) {
+    const lowest = STATE.blocks.filter(b => b.state === "fall")
+      .reduce((m, b) => Math.max(m, b.y), -Infinity);
+    if (fallingCount === 0 || lowest > cssH * 0.20) {
+      STATE.blocks.push(makeBlock());
+      STATE.lastSpawn = now;
+    }
+  }
+
+  for (const b of STATE.blocks) {
+    if (b.shake > 0) b.shake = Math.max(0, b.shake - dt);
+    if (b.state === "fall") {
+      b.y += b.speed * dt;
+      if (b.y > cssH - 6) {
+        b.state = "miss";
+        loseLife(b);
+      }
+    } else if (b.state === "explode") {
+      b.explode += dt;
+    }
+  }
+  STATE.blocks = STATE.blocks.filter(b => {
+    if (b.state === "explode" && b.explode > 0.55) return false;
+    if (b.state === "miss") return false;
+    return true;
+  });
+
+  for (const p of STATE.particles) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 380 * dt;
+    p.life -= dt;
+  }
+  STATE.particles = STATE.particles.filter(p => p.life > 0);
+}
+
+function render() {
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  // Bottom danger line
+  ctx.save();
+  ctx.strokeStyle = "rgba(255, 92, 122, 0.18)";
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 8]);
+  ctx.beginPath();
+  ctx.moveTo(0, cssH - 3);
+  ctx.lineTo(cssW, cssH - 3);
+  ctx.stroke();
+  ctx.restore();
+
+  for (const b of STATE.blocks) {
+    if (b.state === "fall") drawBlock(b);
+    else if (b.state === "explode") drawExplosion(b);
+  }
+
+  for (const p of STATE.particles) {
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawBlock(b) {
+  ctx.font = `700 ${b.fontSize}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  ctx.textBaseline = "top";
+
+  const shakeX = b.shake > 0 ? Math.sin(b.shake * 80) * 6 : 0;
+
+  // Highlight ring while typed > 0
+  if (b.typed > 0) {
+    ctx.save();
+    ctx.fillStyle = b.shake > 0 ? "rgba(255,92,122,0.18)" : "rgba(97,240,200,0.07)";
+    const pad = 14;
+    const r = 10;
+    roundRect(ctx, b.x + shakeX - pad, b.y - pad/2, b.width + 2*pad, b.fontSize + pad, r);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Render prefix in muted color, then answer chars colored by typed-state
+  let dx = b.x + shakeX;
+  // Prefix: "3 × 7 = "
+  ctx.fillStyle = getCss("--equals");
+  ctx.shadowColor = "rgba(0,0,0,0.6)";
+  ctx.shadowBlur = 4;
+  ctx.fillText(b.prefix, dx, b.y);
+  dx += ctx.measureText(b.prefix).width;
+
+  // Answer chars — vis KUN de cifre eleven allerede har tastet (svaret må
+  // ikke afsløres på forhånd!). Når et ciffer skrives, lyser det grønt.
+  ctx.fillStyle = getCss("--typed");
+  ctx.shadowColor = getCss("--typed");
+  ctx.shadowBlur = 10;
+  for (let i = 0; i < b.typed; i++) {
+    const ch = b.answer[i];
+    ctx.fillText(ch, dx, b.y);
+    dx += ctx.measureText(ch).width;
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawExplosion(b) {
+  const frames = ["x X x ·", "X * X *", "* · * ·", "· · ·", " ·  · "];
+  const f = Math.min(frames.length - 1, Math.floor(b.explode / 0.11));
+  const txt = frames[f];
+  const size = Math.min(64, Math.max(28, b.fontSize * 0.85));
+  ctx.font = `700 ${size}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  ctx.textBaseline = "top";
+  ctx.fillStyle = getCss("--accent2");
+  ctx.shadowColor = getCss("--accent2");
+  ctx.shadowBlur = 14;
+  const w = ctx.measureText(txt).width;
+  const cx = b.x + b.width / 2;
+  ctx.fillText(txt, cx - w / 2, b.y);
+  ctx.shadowBlur = 0;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+let _cssCache = {};
+function getCss(varName) {
+  if (_cssCache[varName]) return _cssCache[varName];
+  const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  _cssCache[varName] = v;
+  return v;
+}
+
+/* -------------------- Input -------------------- */
+
+function keyToChar(e) {
+  const k = e.key;
+  if (k.length === 1) return k;
+  return null;
+}
+
+function handleKey(e) {
+  if (!STATE.running) return;
+  if (e.key === "Escape") { togglePause(); e.preventDefault(); return; }
+  if (e.key === "Tab")    {
+    if (!STATE.paused) STATE.paused = true;
+    showStats(true);
+    e.preventDefault();
+    return;
+  }
+  if (STATE.paused) return;
+  const ch = keyToChar(e);
+  if (!ch) return;
+  // Vi forventer kun cifre 0-9
+  if (!/^[0-9]$/.test(ch)) return;
+
+  // Aktiv blok først
+  const active = STATE.blocks.find(b => b.state === "fall" && b.typed > 0);
+  if (active) {
+    const next = active.answer[active.typed];
+    if (next === ch) {
+      active.typed += 1;
+      awardPoint();
+      checkComplete(active);
+    } else {
+      wrongKey(ch, active);
+    }
+    e.preventDefault();
+    return;
+  }
+
+  // Ingen aktiv: vælg en blok hvis første ciffer matcher
+  const candidates = STATE.blocks.filter(
+    b => b.state === "fall" && b.answer[0] === ch
+  );
+  if (candidates.length === 0) {
+    if (STATE.blocks.some(b => b.state === "fall")) wrongKey(ch, null);
+    return;
+  }
+  candidates.sort((a, b) => b.y - a.y);
+  const target = candidates[0];
+  target.typed = 1;
+  awardPoint();
+  checkComplete(target);
+  e.preventDefault();
+}
+
+function awardPoint() {
+  STATE.score += 1;
+  STATE.totalLevelDigits += 1;
+  STATE.pointsToNextLife -= 1;
+  if (STATE.pointsToNextLife <= 0 && STATE.lives < MAX_LIVES) {
+    STATE.lives += 1;
+    STATE.pointsToNextLife = POINTS_PER_LIFE;
+    toast("+1 liv!");
+  } else if (STATE.pointsToNextLife <= 0) {
+    STATE.pointsToNextLife = POINTS_PER_LIFE;
+  }
+  updateHud();
+}
+
+function wrongKey(typedCh, activeBlock) {
+  if (STATE.score > 0) STATE.score -= 1;
+  STATE.totalLevelMissed += 1;
+  updateHud();
+
+  const flash = document.getElementById("wrong-flash");
+  if (flash) {
+    flash.classList.remove("flash");
+    void flash.offsetWidth;
+    flash.classList.add("flash");
+  }
+  const m1 = document.getElementById("minus-one");
+  if (m1) {
+    m1.classList.remove("show");
+    void m1.offsetWidth;
+    m1.classList.add("show");
+  }
+  if (activeBlock) activeBlock.shake = 0.28;
+}
+
+function checkComplete(b) {
+  if (b.typed >= b.answer.length) {
+    explodeBlock(b);
+    STATE.levelHits += 1;
+    if (STATE.levelHits >= STATE.level.target) {
+      setTimeout(() => endRun("complete"), 600);
+    }
+    updateHud();
+  }
+}
+
+function explodeBlock(b) {
+  b.state = "explode";
+  b.explode = 0;
+  const cx = b.x + b.width / 2;
+  const cy = b.y + b.fontSize / 2;
+  const colors = [getCss("--accent"), getCss("--accent2"), "#ffffff"];
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 130 + Math.random() * 260;
+    STATE.particles.push({
+      x: cx, y: cy,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 80,
+      size: 2 + Math.random() * 3,
+      life: 0.45 + Math.random() * 0.25,
+      maxLife: 0.7,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    });
+  }
+}
+
+function loseLife(b) {
+  STATE.lives -= 1;
+  STATE.totalLevelMissed += 1;
+  toast("✗ Mistede liv");
+  const cx = b.x + b.width / 2;
+  const cy = cssH - 12;
+  for (let i = 0; i < 14; i++) {
+    const a = -Math.PI/2 + (Math.random() - 0.5) * Math.PI;
+    const sp = 80 + Math.random() * 180;
+    STATE.particles.push({
+      x: cx, y: cy,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      size: 2 + Math.random() * 2,
+      life: 0.5, maxLife: 0.5,
+      color: getCss("--danger")
+    });
+  }
+  updateHud();
+  if (STATE.lives <= 0) {
+    setTimeout(() => endRun("dead"), 700);
+  }
+}
+
+document.addEventListener("keydown", handleKey);
+
+/* -------------------- HUD -------------------- */
+
+function updateHud() {
+  document.getElementById("hud-name").textContent  = STATE.player || "—";
+  document.getElementById("hud-score").textContent = STATE.score;
+  document.getElementById("hud-lives").textContent =
+    "♥".repeat(Math.max(0, STATE.lives)) + "♡".repeat(Math.max(0, MAX_LIVES - STATE.lives));
+  document.getElementById("hud-level").textContent = STATE.level ? STATE.level.id : "—";
+  document.getElementById("hud-level-name").textContent = STATE.level ? STATE.level.name : "";
+  let progressTxt = "";
+  if (STATE.level) {
+    const left = Math.max(0, STATE.level.target - STATE.levelHits);
+    progressTxt = `${left} stykker tilbage`;
+  }
+  const nl = STATE.lives < MAX_LIVES
+    ? `Næste liv om ${STATE.pointsToNextLife} · ${progressTxt}`
+    : `Liv fyldt · ${progressTxt}`;
+  document.getElementById("hud-nextlife").textContent = nl;
+}
+
+/* -------------------- Skærme -------------------- */
+
+const SCREENS = ["welcome","menu","stats","pause","levelup","gameover","mix"];
+function hideAll() {
+  for (const s of SCREENS) {
+    document.getElementById("screen-" + s).classList.add("hidden");
+  }
+}
+function show(s) {
+  hideAll();
+  document.getElementById("screen-" + s).classList.remove("hidden");
+}
+
+function showWelcome() {
+  show("welcome");
+  document.getElementById("name-input").value = STATE.player || "";
+  setTimeout(() => document.getElementById("name-input").focus(), 50);
+}
+
+function showMenu() {
+  show("menu");
+  document.getElementById("menu-greeting").textContent = `Hej ${STATE.player}!`;
+  buildLevelGrid();
+}
+
+function buildLevelGrid() {
+  const grid = document.getElementById("level-grid");
+  grid.innerHTML = "";
+  const highest = STATE.stats.highestLevel || 1;
+  for (const lvl of LEVELS) {
+    const div = document.createElement("div");
+    const locked = lvl.id > highest;
+    div.className = "lvl" + (locked ? " locked" : "") + (lvl.table === "mix" ? " mix" : "");
+    const label = lvl.table === "mix" ? "MIX" : `${lvl.table}×`;
+    div.innerHTML = `<div class="num">${lvl.id}</div><div class="lbl">${label}</div>`;
+    if (!locked) {
+      div.addEventListener("click", () => startLevel(lvl.id));
+    }
+    grid.appendChild(div);
+  }
+  document.getElementById("btn-menu-play").onclick = () => startLevel(highest);
+}
+
+function showStats(returnToGame) {
+  show("stats");
+  document.getElementById("stats-name").textContent = STATE.player;
+  const o = document.getElementById("stats-overall");
+  const s = STATE.stats;
+  const acc = s.totalDigits + s.totalMissed > 0
+    ? Math.round((s.totalDigits / (s.totalDigits + s.totalMissed)) * 100) + "%"
+    : "—";
+  o.innerHTML = `
+    <div class="stat-row"><span class="k">Højeste niveau</span><span class="v">${s.highestLevel}</span></div>
+    <div class="stat-row"><span class="k">Samlet point</span><span class="v">${s.totalScore}</span></div>
+    <div class="stat-row"><span class="k">Cifre skrevet</span><span class="v">${s.totalDigits}</span></div>
+    <div class="stat-row"><span class="k">Forkerte tryk</span><span class="v">${s.totalMissed}</span></div>
+    <div class="stat-row"><span class="k">Præcision</span><span class="v">${acc}</span></div>
+    <div class="stat-row"><span class="k">Spilletid</span><span class="v">${formatSeconds(s.totalSeconds)}</span></div>
+  `;
+  const pl = document.getElementById("stats-perlevel");
+  pl.innerHTML = "";
+  for (const lvl of LEVELS) {
+    const ls = s.perLevel[String(lvl.id)];
+    if (!ls || ls.plays === 0) continue;
+    const row = document.createElement("div");
+    row.className = "stat-row";
+    row.innerHTML = `<span class="k">${lvl.id}. ${lvl.name}</span><span class="v">${ls.best} pt · ${ls.completed}/${ls.plays} klaret</span>`;
+    pl.appendChild(row);
+  }
+  document.getElementById("btn-stats-back").onclick = () => {
+    if (returnToGame && STATE.running) {
+      hideAll();
+      STATE.paused = false;
+      STATE.lastFrame = performance.now();
+    } else {
+      showMenu();
+    }
+  };
+}
+
+function formatSeconds(s) {
+  s = Math.floor(s);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (h) return `${h}t ${m}m`;
+  if (m) return `${m}m ${ss}s`;
+  return `${ss}s`;
+}
+
+function showLevelup() {
+  show("levelup");
+  document.getElementById("levelup-text").textContent = `Niveau ${STATE.level.id} klaret`;
+  document.getElementById("levelup-summary").textContent =
+    `${STATE.score} point · ${STATE.totalLevelDigits} cifre · ${STATE.lives} liv tilbage`;
+  const next = LEVELS.find(l => l.id === STATE.level.id + 1);
+  document.getElementById("btn-levelup-next").style.display = next ? "" : "none";
+  document.getElementById("btn-levelup-next").onclick = () => next && startLevel(next.id);
+}
+
+function showGameover() {
+  show("gameover");
+  document.getElementById("gameover-summary").textContent =
+    `${STATE.score} point · ${STATE.totalLevelDigits} cifre · niveau ${STATE.level.id}`;
+  document.getElementById("btn-gameover-retry").onclick = () => startLevel(STATE.level.id);
+}
+
+function togglePause() {
+  if (!STATE.running) return;
+  STATE.paused = !STATE.paused;
+  if (STATE.paused) show("pause");
+  else { hideAll(); STATE.lastFrame = performance.now(); }
+}
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 1200);
+}
+
+/* -------------------- MIX-opsætning -------------------- */
+
+let _mixOnConfirm = null;
+
+function showMixSetup(onStart) {
+  _mixOnConfirm = onStart;
+  // Recover saved selection from stats
+  if (STATE.stats && Array.isArray(STATE.stats.mixTables)) {
+    STATE.mixTables = new Set(STATE.stats.mixTables);
+    if (STATE.mixTables.size === 0) STATE.mixTables = new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
+  }
+  buildMixGrid();
+  updateMixSummary();
+  show("mix");
+}
+
+function buildMixGrid() {
+  const grid = document.getElementById("mix-grid");
+  grid.innerHTML = "";
+  for (let n = 1; n <= 12; n++) {
+    const cell = document.createElement("div");
+    cell.className = "mix-cell" + (STATE.mixTables.has(n) ? " active" : "");
+    cell.innerHTML = `${n}×<span class="check">${STATE.mixTables.has(n) ? "med" : "fra"}</span>`;
+    cell.dataset.n = n;
+    cell.addEventListener("click", () => {
+      if (STATE.mixTables.has(n)) STATE.mixTables.delete(n);
+      else STATE.mixTables.add(n);
+      cell.classList.toggle("active");
+      cell.querySelector(".check").textContent = STATE.mixTables.has(n) ? "med" : "fra";
+      updateMixSummary();
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function updateMixSummary() {
+  const sel = [...STATE.mixTables].sort((a,b) => a - b);
+  const sum = document.getElementById("mix-summary");
+  if (sel.length === 0) {
+    sum.textContent = "Vælg mindst én tabel for at starte.";
+    sum.classList.add("warn");
+  } else {
+    sum.textContent = `${sel.length} tabel${sel.length === 1 ? "" : "ler"} valgt: ${sel.map(n => n + "×").join(" · ")}`;
+    sum.classList.remove("warn");
+  }
+  document.getElementById("btn-mix-start").disabled = sel.length === 0;
+}
+
+document.getElementById("btn-mix-all-on").addEventListener("click", () => {
+  STATE.mixTables = new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
+  buildMixGrid();
+  updateMixSummary();
+});
+document.getElementById("btn-mix-all-off").addEventListener("click", () => {
+  STATE.mixTables = new Set();
+  buildMixGrid();
+  updateMixSummary();
+});
+document.getElementById("btn-mix-cancel").addEventListener("click", () => {
+  _mixOnConfirm = null;
+  showMenu();
+});
+document.getElementById("btn-mix-start").addEventListener("click", () => {
+  if (STATE.mixTables.size === 0) return;
+  // Persist user's selection so it's remembered next time
+  if (STATE.stats) {
+    STATE.stats.mixTables = [...STATE.mixTables].sort((a,b) => a - b);
+    saveStats();
+  }
+  const cb = _mixOnConfirm;
+  _mixOnConfirm = null;
+  if (cb) cb();
+});
+
+/* -------------------- Knapper -------------------- */
+
+document.getElementById("btn-welcome-start").addEventListener("click", () => {
+  const v = (document.getElementById("name-input").value || "").trim().slice(0, 20);
+  if (!v) { document.getElementById("name-input").focus(); return; }
+  STATE.player = v;
+  STATE.stats = loadStats();
+  if (!STATE.stats || STATE.stats.name !== v) {
+    STATE.stats = newStatsFor(v);
+    saveStats();
+  } else {
+    saveStats();
+  }
+  showMenu();
+});
+
+document.getElementById("name-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("btn-welcome-start").click();
+});
+
+document.getElementById("btn-menu-stats").addEventListener("click", () => showStats(false));
+document.getElementById("btn-menu-name").addEventListener("click", () => showWelcome());
+
+document.getElementById("btn-stats-reset").addEventListener("click", () => {
+  if (!confirm("Slet alle stats for " + STATE.player + "?")) return;
+  STATE.stats = newStatsFor(STATE.player);
+  saveStats();
+  showMenu();
+});
+
+document.getElementById("btn-pause-resume").addEventListener("click", () => togglePause());
+document.getElementById("btn-pause-quit").addEventListener("click", () => {
+  STATE.running = false;
+  showMenu();
+});
+
+document.getElementById("btn-levelup-menu").addEventListener("click", () => showMenu());
+document.getElementById("btn-gameover-menu").addEventListener("click", () => showMenu());
+
+/* -------------------- Boot -------------------- */
+
+(function boot() {
+  resizeCanvas();
+  const existing = loadStats();
+  if (existing && existing.name) {
+    STATE.player = existing.name;
+    STATE.stats = existing;
+    if (Array.isArray(existing.mixTables) && existing.mixTables.length > 0) {
+      STATE.mixTables = new Set(existing.mixTables);
+    }
+    showMenu();
+  } else {
+    showWelcome();
+  }
+})();
+</script>
+</body>
+</html>
