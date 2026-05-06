@@ -1,3 +1,4 @@
+import Header from "@/components/Header";
 import Link from "next/link";
 
 /**
@@ -8,23 +9,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-brand-50 to-white">
       {/* Navbar */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-        <span className="text-2xl font-black text-brand-700">⌨️ Tastatur Helten</span>
-        <div className="flex gap-3">
-          <Link
-            href="/login"
-            className="px-4 py-2 text-sm font-medium text-brand-700 hover:text-brand-900"
-          >
-            Log ind
-          </Link>
-          <Link
-            href="/register"
-            className="px-4 py-2 text-sm font-semibold bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
-          >
-            Opret konto
-          </Link>
-        </div>
-      </nav>
+      <Header />
 
       {/* Hero */}
       <section className="max-w-4xl mx-auto px-6 py-24 text-center">
