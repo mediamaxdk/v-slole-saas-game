@@ -37,7 +37,7 @@ export async function GET(
 
   // Calculate date filter
   const dateFilter = daysFilter > 0 
-    ? gte(scores.playedAt, sql`NOW() - INTERVAL '${daysFilter} days'`)
+    ? gte(scores.playedAt, sql`NOW() - INTERVAL '${daysFilter} day'`)
     : undefined;
 
   // Get class members
@@ -158,7 +158,7 @@ export async function GET(
     .where(
       and(
         sql`${scores.userId} = ANY(${memberIds})`,
-        gte(scores.playedAt, sql`NOW() - INTERVAL '7 days'`)
+        gte(scores.playedAt, sql`NOW() - INTERVAL '7 day'`)
       )
     )
     .groupBy(sql`DATE(${scores.playedAt})`)

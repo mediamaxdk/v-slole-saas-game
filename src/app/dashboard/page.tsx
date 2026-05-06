@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db, groups, groupMembers, users } from "@/db";
 import PersonalStats from "@/components/PersonalStats";
+import ResendVerificationButton from "@/components/ResendVerificationButton";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -72,27 +73,7 @@ export default async function DashboardPage() {
               <span className="inline-block bg-yellow-100 text-yellow-800 text-sm px-3 py-1 rounded-full">
                 ⚠️ Bekræft din email for at komme på leaderboardet
               </span>
-              <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch("/api/auth/resend-verification", {
-                      method: "POST",
-                    });
-                    if (res.ok) {
-                      alert("📧 Verifikationsmail sendt! Tjek din indbakke.");
-                    } else {
-                      const errorData = await res.json().catch(() => ({}));
-                      const errorMsg = errorData.details || errorData.error || "Ukendt fejl";
-                      alert(`❌ Fejl: ${errorMsg}`);
-                    }
-                  } catch (error) {
-                    alert(`❌ Fejl: ${error instanceof Error ? error.message : "Netværksfejl"}`);
-                  }
-                }}
-                className="text-sm bg-brand-600 text-white px-3 py-1 rounded-full hover:bg-brand-700 transition-colors"
-              >
-                📧 Gensend
-              </button>
+              <ResendVerificationButton />
             </div>
           )}
         </div>
