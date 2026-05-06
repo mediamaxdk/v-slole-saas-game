@@ -72,12 +72,14 @@ export default function Header() {
                           method: "POST",
                         });
                         if (res.ok) {
-                          alert("Verifikationsmail sendt! Tjek din indbakke.");
+                          alert("📧 Verifikationsmail sendt! Tjek din indbakke.");
                         } else {
-                          alert("Fejl: Kunne ikke sende mail.");
+                          const errorData = await res.json().catch(() => ({}));
+                          const errorMsg = errorData.details || errorData.error || "Ukendt fejl";
+                          alert(`❌ Fejl: ${errorMsg}`);
                         }
                       } catch (error) {
-                        alert("Fejl: Kunne ikke sende mail.");
+                        alert(`❌ Fejl: ${error instanceof Error ? error.message : "Netværksfejl"}`);
                       }
                       setIsMenuOpen(false);
                     }}

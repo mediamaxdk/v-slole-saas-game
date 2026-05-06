@@ -81,17 +81,28 @@ export async function POST(req: NextRequest) {
 </html>`;
 
   try {
+    console.log("Sending verification email to:", user.email);
+    console.log("Using EMAIL_FROM:", process.env.EMAIL_FROM);
+    console.log("RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY);
+    
     await sendEmail({
       to: user.email,
       subject: "Bekræft din email — Tastatur Helten",
       html,
     });
 
+    console.log("Verification email sent successfully to:", user.email);
     return NextResponse.json({ message: "Verifikationsmail sendt" });
   } catch (error) {
-    console.error("Resend verification error:", error);
+    console.error("Resend verification error:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      email: user.email,
+      emailFrom: process.env.EMAIL_FROM,
+      resendKeyExists: !!process.env.RESEND_API_KEY,
+    });
     return NextResponse.json(
-      { error: "Kunne ikke sende email" },
+      { error: "Kunne ikke sende email", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

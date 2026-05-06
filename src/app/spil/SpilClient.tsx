@@ -19,7 +19,7 @@ export default function SpilClient() {
 
   const gameParam = searchParams.get("game");
   const [game, setGame] = useState<GameType>(gameParam === "gange" ? "multiplication" : "keyboard");
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | React.ReactNode | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Stats hentet fra Neon (kun for indloggede) — null = ikke hentet endnu
@@ -78,10 +78,10 @@ export default function SpilClient() {
     [isLoggedIn]
   );
 
-  const showToast = useCallback((msg: string) => {
+  const showToast = useCallback((msg: string | React.ReactNode) => {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 3000);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
   }, []);
 
   const handleLevelComplete = useCallback(async (data: LevelData) => {
@@ -106,7 +106,32 @@ export default function SpilClient() {
         if (json.onLeaderboard) {
           showToast(`✅ Score gemt — niveau ${data.levelId}: ${data.score} point`);
         } else if (session?.user && !session.user.emailVerified) {
-          showToast("Score gemt! Bekræft din email for at komme på leaderboardet.");
+          showToast(
+            <div className="flex items-center gap-2">
+              <span>Score gemt! Bekræft din email for at komme på leaderboardet.</span>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/auth/resend-verification", {
+                      method: "POST",
+                    });
+                    if (res.ok) {
+                      showToast("📧 Verifikationsmail sendt! Tjek din indbakke.");
+                    } else {
+                      const errorData = await res.json().catch(() => ({}));
+                      const errorMsg = errorData.details || errorData.error || "Ukendt fejl";
+                      showToast(`❌ Fejl: ${errorMsg}`);
+                    }
+                  } catch (error) {
+                    showToast(`❌ Fejl: ${error instanceof Error ? error.message : "Netværksfejl"}`);
+                  }
+                }}
+                className="bg-white text-brand-600 px-2 py-1 rounded text-sm font-medium hover:bg-brand-50 transition-colors"
+              >
+                Gensend
+              </button>
+            </div>
+          );
         }
       }
     } catch {

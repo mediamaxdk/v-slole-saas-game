@@ -68,9 +68,32 @@ export default async function DashboardPage() {
             Hej, {user.name ?? user.email} 👋
           </h1>
           {!user.emailVerified && (
-            <span className="inline-block bg-yellow-100 text-yellow-800 text-sm px-3 py-1 rounded-full">
-              ⚠️ Bekræft din email for at komme på leaderboardet
-            </span>
+            <div className="inline-flex items-center gap-2">
+              <span className="inline-block bg-yellow-100 text-yellow-800 text-sm px-3 py-1 rounded-full">
+                ⚠️ Bekræft din email for at komme på leaderboardet
+              </span>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/auth/resend-verification", {
+                      method: "POST",
+                    });
+                    if (res.ok) {
+                      alert("📧 Verifikationsmail sendt! Tjek din indbakke.");
+                    } else {
+                      const errorData = await res.json().catch(() => ({}));
+                      const errorMsg = errorData.details || errorData.error || "Ukendt fejl";
+                      alert(`❌ Fejl: ${errorMsg}`);
+                    }
+                  } catch (error) {
+                    alert(`❌ Fejl: ${error instanceof Error ? error.message : "Netværksfejl"}`);
+                  }
+                }}
+                className="text-sm bg-brand-600 text-white px-3 py-1 rounded-full hover:bg-brand-700 transition-colors"
+              >
+                📧 Gensend
+              </button>
+            </div>
           )}
         </div>
 
