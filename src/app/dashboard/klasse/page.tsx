@@ -32,7 +32,7 @@ export default async function KlasseListePage() {
     .orderBy(groups.createdAt);
 
   const klasserMedAntal = await Promise.all(
-    klasser.map(async (k: { id: string; name: string; code: string }) => {
+    klasser.map(async (k) => {
       const members = await db
         .select({ count: groupMembers.userId })
         .from(groupMembers)
@@ -75,7 +75,7 @@ export default async function KlasseListePage() {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {klasserMedAntal.map((k: { id: string; name: string; code: string; archived: boolean; createdAt: Date; memberCount: number }) => (
+            {klasserMedAntal.map((k) => (
               <Link
                 key={k.id}
                 href={`/dashboard/klasse/${k.id}`}
