@@ -49,7 +49,7 @@ const GAME_CSS = `
   position: relative;
 }
 #th-keyboard.hidden-kb { max-height: 0; padding: 0; opacity: 0; overflow: hidden; }
-#th-kb-rows { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+#th-kb-rows { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .th-kb-row, .kb-row { display: flex; gap: 4px; }
 .th-kb-row.r-spc, .kb-row.r-spc { align-self: center; padding-top: 2px; }
 .th-kb-row.r-mid, .kb-row.r-mid { padding-left: clamp(10px, 1.6vw, 22px); }
