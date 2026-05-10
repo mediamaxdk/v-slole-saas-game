@@ -77,7 +77,7 @@ export default function HomePage() {
           {/* Sekundær — tydelig men tilbagetrukket */}
           <Link
             href="/register?role=teacher"
-            className="px-8 py-4 text-brand-700 font-medium text-base rounded-xl hover:bg-brand-50 transition-colors underline-offset-4"
+            className="px-8 py-4 bg-white text-brand-900 font-bold text-lg rounded-xl border-2 border-brand-200 hover:border-brand-400 hover:bg-brand-50 transition-colors shadow-lg"
           >
             <Users className="w-5 h-5 inline mr-2" />
             Opret lærerkonto som lærer
