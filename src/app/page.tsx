@@ -121,8 +121,8 @@ export default function HomePage() {
           <div className="border-x border-b border-gray-200 rounded-b-xl overflow-hidden shadow-2xl shadow-brand-100">
             <ScreenshotSlideshow
               screenshots={[
-                "/screenshots/gameplay.png",
-                "/screenshots/gameplay.svg"
+                "/screenshots/gameplay-1.png",
+                "/screenshots/gameplay-2.png"
               ]}
               alt="Tastatur Helten spilskærm"
               width={1200}
