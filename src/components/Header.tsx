@@ -21,11 +21,7 @@ export default function Header() {
         ⌨️ Tastatur Helten
       </Link>
 
-      {loading ? (
-        <div className="animate-pulse">
-          <div className="h-8 w-20 bg-gray-200 rounded"></div>
-        </div>
-      ) : user ? (
+      {user ? (
         <div className="flex items-center gap-3">
           {/* User info */}
           <div className="flex items-center gap-2">
