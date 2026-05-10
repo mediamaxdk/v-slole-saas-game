@@ -155,20 +155,18 @@ const GAME_CSS = `
 export function MultiplicationGame({ playerName, onLevelComplete, initialStats, onSaveStats }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
-  const [showKeyboard, setShowKeyboard] = useState(true);
 
   useEffect(() => {
     if (!containerRef.current) return;
     const engineOpts: MultiplicationEngineOpts = { 
       initialStats, 
       onSaveStats, 
-      speedMultiplier, 
-      showKeyboard 
+      speedMultiplier
     };
     const cleanup = initMultiplicationEngine(containerRef.current, playerName, onLevelComplete, engineOpts);
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerName, speedMultiplier, showKeyboard]);
+  }, [playerName, speedMultiplier]);
 
   return (
     <>
@@ -194,23 +192,6 @@ export function MultiplicationGame({ playerName, onLevelComplete, initialStats, 
           <div className="gh-toast" id="toast" />
           <div id="wrong-flash" />
           <div id="minus-one">−1</div>
-
-          {/* Keyboard */}
-          <div id="keyboard">
-            <button id="kb-toggle" title="Skjul tastatur (Ctrl+K)">▾</button>
-            <div id="kb-rows">
-              <div className="th-kb-row r-top" id="kb-row-top" />
-              <div className="th-kb-row r-mid" id="kb-row-mid" />
-              <div className="th-kb-row r-bot" id="kb-row-bot" />
-              <div className="th-kb-row r-spc">
-                <div className="key f-thumb space" data-k=" ">mellemrum</div>
-              </div>
-            </div>
-            <div id="finger-hint">
-              <span className="dot" id="fh-dot" />
-              <span id="fh-text">Brug fingrene fra hjemmerækken (asdf jkl)</span>
-            </div>
-          </div>
         </div>
 
         {/* Menu */}
@@ -257,20 +238,7 @@ export function MultiplicationGame({ playerName, onLevelComplete, initialStats, 
                 </div>
               </div>
               
-              {/* Keyboard Toggle */}
-              <div>
-                <label style={{ color: "var(--dim)", fontSize: 12, display: "block", marginBottom: 8 }}>
-                  Vis tastatur
-                </label>
-                <button
-                  className={`gh-btn ${showKeyboard ? "primary" : ""}`}
-                  onClick={() => setShowKeyboard(!showKeyboard)}
-                  style={{ width: "100%" }}
-                >
-                  {showKeyboard ? "Skjul tastatur" : "Vis tastatur"}
-                </button>
               </div>
-            </div>
           </div>
         </div>
 
