@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 
 interface ScreenshotSlideshowProps {
   screenshots: string[];
@@ -31,13 +30,13 @@ export default function ScreenshotSlideshow({ screenshots, alt, width, height }:
               index === currentSlide ? "opacity-100" : "opacity-0"
             }`}
           >
-            <Image
+            <img
               src={screenshot}
               alt={`${alt} - Skærmbillede ${index + 1}`}
               width={width}
               height={height}
-              className="w-full"
-              priority={index === 0}
+              className="w-full h-full object-cover"
+              loading={index === 0 ? "eager" : "lazy"}
             />
           </div>
         ))}
