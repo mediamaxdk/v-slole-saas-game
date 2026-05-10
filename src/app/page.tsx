@@ -122,7 +122,8 @@ export default function HomePage() {
             <ScreenshotSlideshow
               screenshots={[
                 "/screenshots/gameplay-1.png",
-                "/screenshots/gameplay-2.png"
+                "/screenshots/gameplay-2.png",
+                "/screenshots/gameplay-3.png"
               ]}
               alt="Tastatur Helten spilskærm"
               width={1200}
