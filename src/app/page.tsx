@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import Image from "next/image";
+import { Trophy, BarChart2, Gamepad2, School, FileText, Palette, Lock, TrendingUp, Users, CheckCircle } from "lucide-react";
 
 /**
  * Landingsside — Marketing page med whitelabel kontaktformular
@@ -37,31 +38,33 @@ export default function HomePage() {
             href="/spil"
             className="px-8 py-4 bg-brand-600 text-white font-bold text-lg rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200"
           >
-            🎮 Prøv spillet gratis →
+            <Gamepad2 className="w-5 h-5 inline mr-2" />
+            Prøv spillet gratis →
           </Link>
           <Link
             href="/register?role=teacher"
             className="px-8 py-4 bg-white text-brand-700 font-bold text-lg rounded-xl border-2 border-brand-200 hover:border-brand-400 transition-colors"
           >
-            👨‍🏫 Opret lærerkonto
+            <Users className="w-5 h-5 inline mr-2" />
+            Opret lærerkonto
           </Link>
         </div>
         
         <div className="flex flex-wrap justify-center gap-8 text-sm text-brand-200">
           <div className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
+            <CheckCircle className="w-4 h-4 text-green-500" />
             <span>Ingen installation</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
+            <CheckCircle className="w-4 h-4 text-green-500" />
             <span>Dansk udviklet</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
+            <CheckCircle className="w-4 h-4 text-green-500" />
             <span>GDPR-sikkert</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
+            <CheckCircle className="w-4 h-4 text-green-500" />
             <span>Mobilvenligt</span>
           </div>
         </div>
@@ -97,15 +100,14 @@ export default function HomePage() {
       <section className="bg-gray-50 py-24">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-6">
         {[
-          { icon: "🏆", title: "Leaderboard", text: "Elever dyster om toppen i klassen og på det offentlige leaderboard." },
-          { icon: "📊", title: "Lærer-dashboard", text: "Se alle elevers fremgang, bedste scorer og aktivitet på ét sted." },
-          { icon: "🎮", title: "To spil", text: "Tastatur Helten (bogstaver) og Gange Helten (gangetabeller) — begge inkluderet." },
-          { icon: "📈", title: "Progress tracking", text: "Track student progress and identify areas for improvement." },
-          { icon: "👥", title: "Class management", text: "Manage classes and students with ease." },
-          { icon: "📊", title: "Detailed analytics", text: "Get detailed insights into student performance and progress." },
+          { icon: Trophy, title: "Leaderboard", text: "Elever dyster om toppen i klassen og på det offentlige leaderboard." },
+          { icon: BarChart2, title: "Lærer-dashboard", text: "Se alle elevers fremgang, bedste scorer og aktivitet på ét sted." },
+          { icon: Gamepad2, title: "To spil", text: "Tastatur Helten (bogstaver) og Gange Helten (gangetabeller) — begge inkluderet." },
         ].map((f) => (
           <div key={f.title} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="text-4xl mb-3">{f.icon}</div>
+            <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center mb-4">
+              <f.icon className="w-6 h-6 text-brand-600" />
+            </div>
             <h3 className="font-bold text-lg mb-2">{f.title}</h3>
             <p className="text-gray-600 text-sm">{f.text}</p>
           </div>
@@ -126,30 +128,32 @@ export default function HomePage() {
               href="/kontakt"
               className="px-8 py-4 bg-white text-brand-900 font-bold rounded-xl hover:bg-brand-50 transition-colors"
             >
-              🏫 Forespørg whitelabel
+              <School className="w-5 h-5 inline mr-2" />
+            Forespørg whitelabel
             </Link>
             <Link
               href="/privatlivspolitik"
               className="px-8 py-4 border-2 border-white text-white font-bold rounded-xl hover:bg-white hover:text-brand-900 transition-colors"
             >
-              📋 Læs om GDPR
+              <FileText className="w-5 h-5 inline mr-2" />
+            Læs om GDPR
             </Link>
           </div>
           <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm text-brand-300">
             <div className="flex items-center gap-2">
-              <span>🎨</span>
+              <Palette className="w-4 h-4" />
               <span>Eget logo & design</span>
             </div>
             <div className="flex items-center gap-2">
-              <span>🏫</span>
+              <School className="w-4 h-4" />
               <span>Eget domæne</span>
             </div>
             <div className="flex items-center gap-2">
-              <span>📊</span>
+              <BarChart2 className="w-4 h-4" />
               <span>Fuld data-adgang</span>
             </div>
             <div className="flex items-center gap-2">
-              <span>🔒</span>
+              <Lock className="w-4 h-4" />
               <span>GDPR-kompatibelt</span>
             </div>
           </div>
