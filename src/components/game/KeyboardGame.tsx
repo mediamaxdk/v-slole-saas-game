@@ -48,6 +48,15 @@ const GAME_CSS = `
   transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.25s ease;
   position: relative;
 }
+#keyboard {
+  flex: 0 0 auto;
+  padding: 8px 10px 10px;
+  background: linear-gradient(to bottom, rgba(15,20,28,0) 0%, rgba(15,20,28,0.7) 25%, rgba(15,20,28,0.95) 100%);
+  border-top: 1px solid rgba(120,160,200,0.10);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.25s ease;
+  position: relative;
+}
 #keyboard.hidden-kb { max-height: 0; padding: 0; opacity: 0; overflow: hidden; }
 #th-kb-rows { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .th-kb-row, .kb-row { display: flex; gap: 4px; }
@@ -205,7 +214,7 @@ export default function KeyboardGame({ playerName, onLevelComplete, initialStats
 
   // Handle keyboard toggle button click
   const handleKeyboardToggle = useCallback(() => {
-    console.log("Keyboard toggle button clicked!");
+    console.log("HUD keyboard toggle button clicked!");
     const keyboard = document.getElementById('keyboard');
     console.log("Keyboard element found:", keyboard);
     if (keyboard) {
