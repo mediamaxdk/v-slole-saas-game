@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
-import { KeyboardGame, type LevelCompleteData as KeyboardData } from "@/components/game/KeyboardGame";
+import KeyboardGame, { type LevelCompleteData as KeyboardData } from "@/components/game/KeyboardGame";
 import { MultiplicationGame, type MultiLevelCompleteData as MultiData } from "@/components/game/MultiplicationGame";
 
 type GameType = "keyboard" | "multiplication";
