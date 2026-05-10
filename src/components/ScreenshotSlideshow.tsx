@@ -21,7 +21,7 @@ export default function ScreenshotSlideshow({ screenshots, alt, width, height }:
   }, [screenshots.length]);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-b-xl">
+    <div className="relative w-full overflow-hidden rounded-b-xl" style={{ height: `${height}px` }}>
       <div className="relative h-full">
         {screenshots.map((screenshot, index) => (
           <div
