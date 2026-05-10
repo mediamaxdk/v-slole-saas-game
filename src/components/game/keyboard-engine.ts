@@ -369,14 +369,10 @@ export function initKeyboardEngine(
   }
 
   function toggleKeyboard() {
-    console.log("toggleKeyboard function called");
     const kb = $("keyboard");
     if (kb) {
       kb.classList.toggle("hidden-kb");
-      console.log("Keyboard visibility toggled, current classes:", kb.className);
       requestAnimationFrame(resizeCanvas);
-    } else {
-      console.error("Keyboard element not found!");
     }
   }
 
@@ -962,15 +958,6 @@ export function initKeyboardEngine(
   ($("btn-levelup-menu") as HTMLButtonElement).addEventListener("click", () => showMenu());
   ($("btn-gameover-menu") as HTMLButtonElement).addEventListener("click", () => showMenu());
   ($("kb-toggle") as HTMLButtonElement).addEventListener("click", toggleKeyboard);
-  
-  // Add keyboard toggle button with error handling
-  const hudKeyboardToggle = $("hud-keyboard-toggle") as HTMLButtonElement;
-  if (hudKeyboardToggle) {
-    hudKeyboardToggle.addEventListener("click", toggleKeyboard);
-    console.log("Keyboard toggle button found and event listener added");
-  } else {
-    console.error("Keyboard toggle button not found!");
-  }
 
   /* --- Boot --- */
   buildKeyboard();

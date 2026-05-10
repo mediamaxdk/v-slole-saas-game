@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { initKeyboardEngine, type LevelCompleteData, type KeyboardEngineOpts } from "./keyboard-engine";
 
 export type { LevelCompleteData };
@@ -203,6 +203,16 @@ export default function KeyboardGame({ playerName, onLevelComplete, initialStats
   const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
   const [showKeyboard, setShowKeyboard] = useState(true);
 
+  // Handle keyboard toggle button click
+  const handleKeyboardToggle = useCallback(() => {
+    const keyboard = document.getElementById('keyboard');
+    if (keyboard) {
+      keyboard.classList.toggle('hidden-kb');
+      // Trigger resize to adjust game area
+      window.dispatchEvent(new Event('resize'));
+    }
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current) return;
     const engineOpts: KeyboardEngineOpts = { 
@@ -240,6 +250,7 @@ export default function KeyboardGame({ playerName, onLevelComplete, initialStats
                 id="hud-keyboard-toggle"
                 className="px-3 py-1 bg-brand-600 text-white text-xs font-medium rounded hover:bg-brand-700 transition-colors"
                 title="Skjul/Vis tastatur"
+                onClick={handleKeyboardToggle}
               >
                 🎹 Tastatur
               </button>
