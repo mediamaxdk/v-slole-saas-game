@@ -956,6 +956,7 @@ export function initKeyboardEngine(
   ($("btn-levelup-menu") as HTMLButtonElement).addEventListener("click", () => showMenu());
   ($("btn-gameover-menu") as HTMLButtonElement).addEventListener("click", () => showMenu());
   ($("kb-toggle") as HTMLButtonElement).addEventListener("click", toggleKeyboard);
+  ($("hud-keyboard-toggle") as HTMLButtonElement).addEventListener("click", toggleKeyboard);
 
   /* --- Boot --- */
   buildKeyboard();

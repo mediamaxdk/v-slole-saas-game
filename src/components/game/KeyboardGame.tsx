@@ -232,12 +232,21 @@ export default function KeyboardGame({ playerName, onLevelComplete, initialStats
             </div>
             <div className="group">
               <div><span className="label">Point</span><span className="val" id="hud-score">0</span></div>
-              <div className="next-life" id="hud-nextlife">Næste liv om 500</div>
+              <div className="next-life" id="hud-nextlife"></div>
               <div><span className="label">Liv</span><span className="lives" id="hud-lives">♥♥♥♥♥</span></div>
+            </div>
+            <div className="group">
+              <button 
+                id="hud-keyboard-toggle"
+                className="px-3 py-1 bg-brand-600 text-white text-xs font-medium rounded hover:bg-brand-700 transition-colors"
+                title="Skjul/Vis tastatur"
+              >
+                🎹 Tastatur
+              </button>
             </div>
           </div>
 
-          <div className="th-pause-hint">ESC pause · TAB stats · Ctrl+K skjul tastatur</div>
+          <div className="th-pause-hint">ESC pause · TAB stats · 🎹 Tastatur (skjul/vis)</div>
           <div className="th-toast" id="toast" />
           <div id="wrong-flash" />
           <div id="minus-one">−1</div>
