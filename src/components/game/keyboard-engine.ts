@@ -188,6 +188,8 @@ const POINTS_PER_LIFE = 500;
 export interface KeyboardEngineOpts {
   initialStats?: Record<string, unknown>;
   onSaveStats?: (stats: Record<string, unknown>) => void;
+  speedMultiplier?: number;
+  showKeyboard?: boolean;
 }
 
 export function initKeyboardEngine(
@@ -403,7 +405,9 @@ export function initKeyboardEngine(
     const margin = 30;
     const x = margin + Math.random() * Math.max(10, cssW - 2 * margin - width);
     const y = -fontSize;
-    const speed = STATE.level.baseSpeed + STATE.levelHits * STATE.level.speedInc;
+    const baseSpeed = STATE.level.baseSpeed + STATE.levelHits * STATE.level.speedInc;
+    const speedMultiplier = opts?.speedMultiplier || 1.0;
+    const speed = baseSpeed * speedMultiplier;
     return { text, typed: 0, x, y, fontSize, width, speed, state: "fall", explode: 0, shake: 0 };
   }
 
@@ -955,6 +959,10 @@ export function initKeyboardEngine(
 
   /* --- Boot --- */
   buildKeyboard();
+  // Set initial keyboard visibility
+  if (opts?.showKeyboard === false) {
+    setKeyboardVisible(false);
+  }
   resizeCanvas();
   window.addEventListener("resize", resizeCanvas);
   window.addEventListener("keydown", handleKey);

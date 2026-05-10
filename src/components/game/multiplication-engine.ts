@@ -21,6 +21,8 @@ const POINTS_PER_LIFE = 500;
 export interface MultiplicationEngineOpts {
   initialStats?: Record<string, unknown>;
   onSaveStats?: (stats: Record<string, unknown>) => void;
+  speedMultiplier?: number;
+  showKeyboard?: boolean;
 }
 
 export function initMultiplicationEngine(
@@ -164,7 +166,9 @@ export function initMultiplicationEngine(
     const margin = 30;
     const x = margin + Math.random() * Math.max(10, cssW - 2 * margin - width);
     const y = -fontSize;
-    const speed = STATE.level.baseSpeed + STATE.levelHits * STATE.level.speedInc;
+    const baseSpeed = STATE.level.baseSpeed + STATE.levelHits * STATE.level.speedInc;
+    const speedMultiplier = opts?.speedMultiplier || 1.0;
+    const speed = baseSpeed * speedMultiplier;
     return { prefix, answer, typed: 0, x, y, fontSize, width, speed, state: "fall", explode: 0, shake: 0 };
   }
 
@@ -276,7 +280,58 @@ export function initMultiplicationEngine(
     requestAnimationFrame(frame);
   }
 
-  /* --- Input --- */
+  /* --- Tastaturguide --- */
+  const KEY_NODES: Record<string, HTMLElement> = {};
+
+  function buildKeyboard() {
+    const rows: [keyof typeof KB_LAYOUT, string][] = [["top","kb-row-top"],["mid","kb-row-mid"],["bot","kb-row-bot"]];
+    for (const [rk, rid] of rows) {
+      const el = $(rid);
+      if (!el) continue;
+      const rowKeys = KB_LAYOUT[rk];
+      el.innerHTML = "";
+      for (const key of rowKeys) {
+        const keyEl = document.createElement("div");
+        keyEl.className = `key ${getFingerClass(key)}`;
+        keyEl.setAttribute("data-k", key);
+        keyEl.textContent = key;
+        el.appendChild(keyEl);
+        KEY_NODES[key] = keyEl;
+      }
+    }
+  }
+
+  function getFingerClass(key: string): string {
+    const FINGER_MAP: Record<string, string> = {
+      '1': 'f-pinky', '2': 'f-ring', '3': 'f-middle', '4': 'f-index',
+      '5': 'f-index', '6': 'f-middle', '7': 'f-ring', '8': 'f-pinky',
+      '9': 'f-pinky', '0': 'f-thumb',
+      'q': 'f-pinky', 'w': 'f-ring', 'e': 'f-middle', 'r': 'f-index', 't': 'f-index', 'y': 'f-middle', 'u': 'f-ring', 'i': 'f-pinky',
+      'a': 'f-pinky', 's': 'f-ring', 'd': 'f-middle', 'f': 'f-index', 'g': 'f-index', 'h': 'f-middle', 'j': 'f-ring', 'k': 'f-pinky',
+      'z': 'f-pinky', 'x': 'f-ring', 'c': 'f-middle', 'v': 'f-index', 'b': 'f-index', 'n': 'f-middle', 'm': 'f-ring', 'æ': 'f-pinky', 'ø': 'f-ring', 'å': 'f-middle'
+    };
+    return FINGER_MAP[key] || '';
+  }
+
+  const KB_LAYOUT = {
+    top: ['1','2','3','4','5','6','7','8','9','0'],
+    mid: ['q','w','e','r','t','y','u','i','o','p','å'],
+    bot: ['a','s','d','f','g','h','j','k','l','æ','ø','z','x','c','v','b','n','m']
+  } as const;
+
+  function toggleKeyboard() {
+    const kb = $("keyboard");
+    kb.classList.toggle("hidden-kb");
+    requestAnimationFrame(resizeCanvas);
+  }
+
+  function setKeyboardVisible(visible: boolean) {
+    const kb = $("keyboard");
+    if (visible) kb.classList.remove("hidden-kb");
+    else kb.classList.add("hidden-kb");
+    requestAnimationFrame(resizeCanvas);
+  }
+
   function keyToChar(e: KeyboardEvent): string | null {
     const k = e.key;
     if (k.length === 1) return k;
@@ -287,6 +342,9 @@ export function initMultiplicationEngine(
     if (!STATE.running) return;
     if (e.key === "Escape") { togglePause(); e.preventDefault(); return; }
     if (e.key === "Tab") { if (!STATE.paused) STATE.paused = true; showStats(true); e.preventDefault(); return; }
+    if ((e.key === "k" || e.key === "K") && (e.ctrlKey || e.metaKey)) {
+      toggleKeyboard(); e.preventDefault(); return;
+    }
     if (STATE.paused) return;
     const ch = keyToChar(e);
     if (!ch) return;
@@ -598,6 +656,7 @@ export function initMultiplicationEngine(
   });
   ($("btn-mix-cancel") as HTMLButtonElement).addEventListener("click", () => { _mixOnConfirm = null; showMenu(); });
   ($("btn-mix-start") as HTMLButtonElement).addEventListener("click", () => {
+  ($("kb-toggle") as HTMLButtonElement).addEventListener("click", toggleKeyboard);
     if (STATE.mixTables.size === 0) return;
     if (STATE.stats) STATE.stats.mixTables = [...STATE.mixTables as Set<number>].sort((a: number, b: number) => a - b);
     const cb = _mixOnConfirm; _mixOnConfirm = null;
@@ -605,6 +664,11 @@ export function initMultiplicationEngine(
   });
 
   /* --- Boot --- */
+  buildKeyboard();
+  // Set initial keyboard visibility
+  if (opts?.showKeyboard === false) {
+    setKeyboardVisible(false);
+  }
   resizeCanvas();
   window.addEventListener("resize", resizeCanvas);
   window.addEventListener("keydown", handleKey);

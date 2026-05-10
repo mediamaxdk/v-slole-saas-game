@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { initMultiplicationEngine, type MultiLevelCompleteData, type MultiplicationEngineOpts } from "./multiplication-engine";
 
 export type { MultiLevelCompleteData };
@@ -154,14 +154,21 @@ const GAME_CSS = `
 
 export function MultiplicationGame({ playerName, onLevelComplete, initialStats, onSaveStats }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
+  const [showKeyboard, setShowKeyboard] = useState(true);
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const engineOpts: MultiplicationEngineOpts = { initialStats, onSaveStats };
+    const engineOpts: MultiplicationEngineOpts = { 
+      initialStats, 
+      onSaveStats, 
+      speedMultiplier, 
+      showKeyboard 
+    };
     const cleanup = initMultiplicationEngine(containerRef.current, playerName, onLevelComplete, engineOpts);
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerName]);
+  }, [playerName, speedMultiplier, showKeyboard]);
 
   return (
     <>
@@ -187,6 +194,23 @@ export function MultiplicationGame({ playerName, onLevelComplete, initialStats, 
           <div className="gh-toast" id="toast" />
           <div id="wrong-flash" />
           <div id="minus-one">−1</div>
+
+          {/* Keyboard */}
+          <div id="keyboard">
+            <button id="kb-toggle" title="Skjul tastatur (Ctrl+K)">▾</button>
+            <div id="kb-rows">
+              <div className="th-kb-row r-top" id="kb-row-top" />
+              <div className="th-kb-row r-mid" id="kb-row-mid" />
+              <div className="th-kb-row r-bot" id="kb-row-bot" />
+              <div className="th-kb-row r-spc">
+                <div className="key f-thumb space" data-k=" ">mellemrum</div>
+              </div>
+            </div>
+            <div id="finger-hint">
+              <span className="dot" id="fh-dot" />
+              <span id="fh-text">Brug fingrene fra hjemmerækken (asdf jkl)</span>
+            </div>
+          </div>
         </div>
 
         {/* Menu */}
@@ -200,6 +224,52 @@ export function MultiplicationGame({ playerName, onLevelComplete, initialStats, 
               <button className="gh-btn primary" id="btn-menu-play">Spil videre</button>
               <button className="gh-btn" id="btn-menu-stats">Mine stats</button>
               <button className="gh-btn" id="btn-menu-name" style={{ display: "none" }}>Skift navn</button>
+            </div>
+            
+            {/* Game Settings */}
+            <div style={{ marginTop: 24, padding: 16, background: "rgba(255,255,255,0.05)", borderRadius: 8 }}>
+              <h3 style={{ color: "var(--fg)", fontSize: 14, marginBottom: 12 }}>Indstillinger</h3>
+              
+              {/* Speed Control */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ color: "var(--dim)", fontSize: 12, display: "block", marginBottom: 4 }}>
+                  Hastighed: {(speedMultiplier * 100).toFixed(0)}%
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={speedMultiplier}
+                  onChange={(e) => setSpeedMultiplier(parseFloat(e.target.value))}
+                  style={{ 
+                    width: "100%", 
+                    height: 6, 
+                    background: "var(--bg2)", 
+                    outline: "none",
+                    borderRadius: 3
+                  }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                  <span style={{ color: "var(--dim)", fontSize: 10 }}>50%</span>
+                  <span style={{ color: "var(--dim)", fontSize: 10 }}>100%</span>
+                  <span style={{ color: "var(--dim)", fontSize: 10 }}>200%</span>
+                </div>
+              </div>
+              
+              {/* Keyboard Toggle */}
+              <div>
+                <label style={{ color: "var(--dim)", fontSize: 12, display: "block", marginBottom: 8 }}>
+                  Vis tastatur
+                </label>
+                <button
+                  className={`gh-btn ${showKeyboard ? "primary" : ""}`}
+                  onClick={() => setShowKeyboard(!showKeyboard)}
+                  style={{ width: "100%" }}
+                >
+                  {showKeyboard ? "Skjul tastatur" : "Vis tastatur"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

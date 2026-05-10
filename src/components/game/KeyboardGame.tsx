@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { initKeyboardEngine, type LevelCompleteData, type KeyboardEngineOpts } from "./keyboard-engine";
 
 export type { LevelCompleteData };
@@ -198,17 +198,24 @@ const GAME_CSS = `
 }
 `;
 
-export function KeyboardGame({ playerName, onLevelComplete, initialStats, onSaveStats }: Props) {
+export default function KeyboardGame({ playerName, onLevelComplete, initialStats, onSaveStats }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
+  const [showKeyboard, setShowKeyboard] = useState(true);
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const engineOpts: KeyboardEngineOpts = { initialStats, onSaveStats };
+    const engineOpts: KeyboardEngineOpts = { 
+      initialStats, 
+      onSaveStats, 
+      speedMultiplier, 
+      showKeyboard 
+    };
     const cleanup = initKeyboardEngine(containerRef.current, playerName, onLevelComplete, engineOpts);
     return cleanup;
     // onLevelComplete/initialStats/onSaveStats intentionally excluded — stable refs from parent
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerName]);
+  }, [playerName, speedMultiplier, showKeyboard]);
 
   return (
     <>
@@ -265,6 +272,52 @@ export function KeyboardGame({ playerName, onLevelComplete, initialStats, onSave
               <button className="th-btn" id="btn-menu-tutorial">Vis tastatur-guide</button>
               <button className="th-btn" id="btn-menu-stats">Mine stats</button>
               <button className="th-btn" id="btn-menu-name" style={{ display: "none" }}>Skift navn</button>
+            </div>
+            
+            {/* Game Settings */}
+            <div style={{ marginTop: 24, padding: 16, background: "rgba(255,255,255,0.05)", borderRadius: 8 }}>
+              <h3 style={{ color: "var(--fg)", fontSize: 14, marginBottom: 12 }}>Indstillinger</h3>
+              
+              {/* Speed Control */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ color: "var(--dim)", fontSize: 12, display: "block", marginBottom: 4 }}>
+                  Hastighed: {(speedMultiplier * 100).toFixed(0)}%
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={speedMultiplier}
+                  onChange={(e) => setSpeedMultiplier(parseFloat(e.target.value))}
+                  style={{ 
+                    width: "100%", 
+                    height: 6, 
+                    background: "var(--bg2)", 
+                    outline: "none",
+                    borderRadius: 3
+                  }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                  <span style={{ color: "var(--dim)", fontSize: 10 }}>50%</span>
+                  <span style={{ color: "var(--dim)", fontSize: 10 }}>100%</span>
+                  <span style={{ color: "var(--dim)", fontSize: 10 }}>200%</span>
+                </div>
+              </div>
+              
+              {/* Keyboard Toggle */}
+              <div>
+                <label style={{ color: "var(--dim)", fontSize: 12, display: "block", marginBottom: 8 }}>
+                  Vis tastatur
+                </label>
+                <button
+                  className={`th-btn ${showKeyboard ? "primary" : ""}`}
+                  onClick={() => setShowKeyboard(!showKeyboard)}
+                  style={{ width: "100%" }}
+                >
+                  {showKeyboard ? "Skjul tastatur" : "Vis tastatur"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
