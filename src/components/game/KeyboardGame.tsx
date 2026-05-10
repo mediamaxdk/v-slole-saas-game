@@ -48,7 +48,7 @@ const GAME_CSS = `
   transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.25s ease;
   position: relative;
 }
-#th-keyboard.hidden-kb { max-height: 0; padding: 0; opacity: 0; overflow: hidden; }
+#keyboard.hidden-kb { max-height: 0; padding: 0; opacity: 0; overflow: hidden; }
 #th-kb-rows { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .th-kb-row, .kb-row { display: flex; gap: 4px; }
 .th-kb-row.r-spc, .kb-row.r-spc { align-self: center; padding-top: 2px; }
@@ -205,11 +205,19 @@ export default function KeyboardGame({ playerName, onLevelComplete, initialStats
 
   // Handle keyboard toggle button click
   const handleKeyboardToggle = useCallback(() => {
+    console.log("Keyboard toggle button clicked!");
     const keyboard = document.getElementById('keyboard');
+    console.log("Keyboard element found:", keyboard);
     if (keyboard) {
+      const wasHidden = keyboard.classList.contains('hidden-kb');
       keyboard.classList.toggle('hidden-kb');
+      const isHidden = keyboard.classList.contains('hidden-kb');
+      console.log(`Keyboard visibility changed from ${wasHidden} to ${isHidden}`);
+      console.log("Keyboard classes after toggle:", keyboard.className);
       // Trigger resize to adjust game area
       window.dispatchEvent(new Event('resize'));
+    } else {
+      console.error("Keyboard element not found!");
     }
   }, []);
 
