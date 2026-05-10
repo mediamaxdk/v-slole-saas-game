@@ -14,8 +14,40 @@ export default function HomePage() {
       <Header />
 
       {/* Hero */}
-      <section className="bg-brand-700 text-white py-24 text-center">
-        <div className="max-w-5xl mx-auto px-6">
+      <section className="bg-brand-700 text-white py-24 text-center relative overflow-hidden">
+        <div className="max-w-5xl mx-auto px-6 relative z-10">
+          {/* Hero mascot - hidden on mobile */}
+          <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 z-0">
+            <svg width="200" height="200" viewBox="0 0 200 200" className="opacity-20">
+              {/* Hero figure with keyboard */}
+              <g transform="translate(100, 100)">
+                {/* Body */}
+                <circle cx="0" cy="-20" r="25" fill="white" />
+                <rect x="-20" y="-10" width="40" height="50" rx="10" fill="white" />
+                
+                {/* Arms */}
+                <rect x="-35" y="-5" width="15" height="30" rx="7" fill="white" transform="rotate(-30 -27.5 10)" />
+                <rect x="20" y="-5" width="15" height="30" rx="7" fill="white" transform="rotate(30 27.5 10)" />
+                
+                {/* Keyboard */}
+                <rect x="-30" y="45" width="60" height="20" rx="3" fill="white" />
+                <rect x="-25" y="48" width="50" height="14" rx="2" fill="currentColor" />
+                
+                {/* Keys */}
+                <rect x="-20" y="50" width="8" height="6" rx="1" fill="white" />
+                <rect x="-10" y="50" width="8" height="6" rx="1" fill="white" />
+                <rect x="0" y="50" width="8" height="6" rx="1" fill="white" />
+                <rect x="10" y="50" width="8" height="6" rx="1" fill="white" />
+                
+                {/* Cape/Hero cape */}
+                <path d="M -20 10 Q -25 30 -15 50 L 15 50 Q 25 30 20 10 Z" fill="currentColor" opacity="0.8" />
+                
+                {/* Hero mask/emblem */}
+                <circle cx="0" cy="-20" r="15" fill="currentColor" />
+                <text x="0" y="-15" text-anchor="middle" fill="white" fontSize="12" fontWeight="bold">TH</text>
+              </g>
+            </svg>
+          </div>
           <div className="mb-8">
           <div className="inline-flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-full text-sm font-medium mb-6">
             <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
@@ -165,7 +197,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="text-center py-8 text-sm text-gray-400">
         © {new Date().getFullYear()} Tastatur Helten · Gratis og{" "}
-        <a href="https://github.com" className="underline hover:text-gray-600">open source</a>
+        <a href="https://github.com/mediamaxdk/v-slole-saas-game" className="underline hover:text-gray-600">open source</a>
         {" "}·{" "}
         <Link href="/privatlivspolitik" className="underline hover:text-gray-600">Privatlivspolitik</Link>
       </footer>
