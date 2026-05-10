@@ -8,24 +8,25 @@ import Image from "next/image";
  */
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-brand-50 to-white">
+    <main className="min-h-screen">
       {/* Navbar */}
       <Header />
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-6 py-24 text-center">
-        <div className="mb-8">
-          <div className="inline-flex items-center gap-2 bg-brand-100 text-brand-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-            <span className="w-2 h-2 bg-brand-600 rounded-full animate-pulse"></span>
+      <section className="bg-brand-700 text-white py-24 text-center">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="mb-8">
+          <div className="inline-flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-full text-sm font-medium mb-6">
+            <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
             Gratis for alle skoler og elever
           </div>
         </div>
         
-        <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-6 text-balance">
+        <h1 className="text-5xl md:text-6xl font-black text-white mb-6 text-balance">
           Lær at taste med alle ti fingre
         </h1>
         
-        <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto text-balance leading-relaxed">
+        <p className="text-xl text-brand-100 mb-8 max-w-3xl mx-auto text-balance leading-relaxed">
           Tastatur Helten er et engagerende tastespil designet til danske skoler. 
           Elever motiveres af klasse-leaderboards, mens lærere får detaljeret indsigt 
           i fremgangen gennem et intuitivt dashboard.
@@ -46,7 +47,7 @@ export default function HomePage() {
           </Link>
         </div>
         
-        <div className="flex flex-wrap justify-center gap-8 text-sm text-gray-500">
+        <div className="flex flex-wrap justify-center gap-8 text-sm text-brand-200">
           <div className="flex items-center gap-2">
             <span className="text-green-500">✓</span>
             <span>Ingen installation</span>
@@ -89,14 +90,19 @@ export default function HomePage() {
             />
           </div>
         </div>
+        </div>
       </section>
 
       {/* Feature-kort — udbygges */}
-      <section className="max-w-6xl mx-auto px-6 pb-24 grid md:grid-cols-3 gap-6">
+      <section className="bg-gray-50 py-24">
+        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-6">
         {[
           { icon: "🏆", title: "Leaderboard", text: "Elever dyster om toppen i klassen og på det offentlige leaderboard." },
           { icon: "📊", title: "Lærer-dashboard", text: "Se alle elevers fremgang, bedste scorer og aktivitet på ét sted." },
           { icon: "🎮", title: "To spil", text: "Tastatur Helten (bogstaver) og Gange Helten (gangetabeller) — begge inkluderet." },
+          { icon: "📈", title: "Progress tracking", text: "Track student progress and identify areas for improvement." },
+          { icon: "👥", title: "Class management", text: "Manage classes and students with ease." },
+          { icon: "📊", title: "Detailed analytics", text: "Get detailed insights into student performance and progress." },
         ].map((f) => (
           <div key={f.title} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="text-4xl mb-3">{f.icon}</div>
@@ -104,6 +110,7 @@ export default function HomePage() {
             <p className="text-gray-600 text-sm">{f.text}</p>
           </div>
         ))}
+        </div>
       </section>
 
       {/* Kontakt / whitelabel */}
