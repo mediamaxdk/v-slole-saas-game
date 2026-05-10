@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import Link from "next/link";
 import Image from "next/image";
+import ScreenshotSlideshow from "@/components/ScreenshotSlideshow";
 import { Trophy, BarChart2, Gamepad2, School, FileText, Palette, Lock, TrendingUp, Users, CheckCircle } from "lucide-react";
 
 /**
@@ -103,7 +104,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Product screenshot mockup */}
+        {/* Product screenshot slideshow */}
         <div className="mt-16 relative mx-auto max-w-4xl">
           {/* Browser chrome */}
           <div className="bg-gray-100 rounded-t-xl px-4 py-3 flex items-center gap-2 border border-gray-200">
@@ -116,14 +117,16 @@ export default function HomePage() {
               spil.v-skole.dk/spil
             </div>
           </div>
-          {/* Screenshot */}
+          {/* Screenshot slideshow */}
           <div className="border-x border-b border-gray-200 rounded-b-xl overflow-hidden shadow-2xl shadow-brand-100">
-            <Image
-              src="/screenshots/gameplay.svg"
+            <ScreenshotSlideshow
+              screenshots={[
+                "/screenshots/gameplay-1.png",
+                "/screenshots/gameplay-2.png"
+              ]}
               alt="Tastatur Helten spilskærm"
               width={1200}
               height={700}
-              className="w-full"
             />
           </div>
         </div>

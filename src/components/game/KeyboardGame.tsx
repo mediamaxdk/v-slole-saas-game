@@ -76,7 +76,13 @@ const GAME_CSS = `
   text-transform: uppercase;
   transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
-#th-game .key.space { width: clamp(160px, 32vw, 320px); font-size: 10px; letter-spacing: 0.3em; }
+#th-game .key.space { 
+  width: clamp(160px, 32vw, 320px); 
+  font-size: 10px; 
+  letter-spacing: 0.3em;
+  margin: 0 auto;
+  justify-self: center;
+}
 #th-game .key.f-pinky  { --fc: var(--finger-pinky); }
 #th-game .key.f-ring   { --fc: var(--finger-ring); }
 #th-game .key.f-middle { --fc: var(--finger-middle); }
