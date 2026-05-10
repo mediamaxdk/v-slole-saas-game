@@ -230,6 +230,20 @@ export default function KeyboardGame({ playerName, onLevelComplete, initialStats
     }
   }, []);
 
+  // Add event listener after component mounts
+  useEffect(() => {
+    const toggleButton = document.getElementById('hud-keyboard-toggle');
+    if (toggleButton) {
+      console.log("Adding click listener to HUD keyboard toggle button");
+      toggleButton.addEventListener('click', handleKeyboardToggle);
+      return () => {
+        toggleButton.removeEventListener('click', handleKeyboardToggle);
+      };
+    } else {
+      console.error("HUD keyboard toggle button not found in DOM!");
+    }
+  }, [handleKeyboardToggle]);
+
   useEffect(() => {
     if (!containerRef.current) return;
     const engineOpts: KeyboardEngineOpts = { 
@@ -267,7 +281,6 @@ export default function KeyboardGame({ playerName, onLevelComplete, initialStats
                 id="hud-keyboard-toggle"
                 className="px-3 py-1 bg-brand-600 text-white text-xs font-medium rounded hover:bg-brand-700 transition-colors"
                 title="Skjul/Vis tastatur"
-                onClick={handleKeyboardToggle}
               >
                 🎹 Tastatur
               </button>
