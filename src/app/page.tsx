@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Link from "next/link";
+import Image from "next/image";
 
 /**
  * Landingsside — Marketing page med whitelabel kontaktformular
@@ -61,6 +62,31 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <span className="text-green-500">✓</span>
             <span>Mobilvenligt</span>
+          </div>
+        </div>
+
+        {/* Product screenshot mockup */}
+        <div className="mt-16 relative mx-auto max-w-4xl">
+          {/* Browser chrome */}
+          <div className="bg-gray-100 rounded-t-xl px-4 py-3 flex items-center gap-2 border border-gray-200">
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-400" />
+              <div className="w-3 h-3 rounded-full bg-yellow-400" />
+              <div className="w-3 h-3 rounded-full bg-green-400" />
+            </div>
+            <div className="flex-1 bg-white rounded px-3 py-1 text-xs text-gray-400 text-center">
+              spil.v-skole.dk/spil
+            </div>
+          </div>
+          {/* Screenshot */}
+          <div className="border-x border-b border-gray-200 rounded-b-xl overflow-hidden shadow-2xl shadow-brand-100">
+            <Image
+              src="/screenshots/gameplay.svg"
+              alt="Tastatur Helten spilskærm"
+              width={1200}
+              height={700}
+              className="w-full"
+            />
           </div>
         </div>
       </section>
