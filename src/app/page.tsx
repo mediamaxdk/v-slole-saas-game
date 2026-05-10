@@ -34,19 +34,21 @@ export default function HomePage() {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          {/* Primær — større og mere fremtrædende */}
           <Link
             href="/spil"
-            className="px-8 py-4 bg-brand-600 text-white font-bold text-lg rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-200"
+            className="px-10 py-5 bg-brand-600 text-white font-bold text-xl rounded-xl hover:bg-brand-700 transition-colors shadow-xl shadow-brand-200"
           >
-            <Gamepad2 className="w-5 h-5 inline mr-2" />
+            <Gamepad2 className="w-6 h-6 inline mr-2" />
             Prøv spillet gratis →
           </Link>
+          {/* Sekundær — tydelig men tilbagetrukket */}
           <Link
             href="/register?role=teacher"
-            className="px-8 py-4 bg-white text-brand-700 font-bold text-lg rounded-xl border-2 border-brand-200 hover:border-brand-400 transition-colors"
+            className="px-8 py-4 text-brand-700 font-medium text-base rounded-xl hover:bg-brand-50 transition-colors underline-offset-4"
           >
             <Users className="w-5 h-5 inline mr-2" />
-            Opret lærerkonto
+            Opret lærerkonto som lærer
           </Link>
         </div>
         
