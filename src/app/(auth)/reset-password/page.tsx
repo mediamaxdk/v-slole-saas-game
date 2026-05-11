@@ -35,12 +35,20 @@ function ResetPasswordContent() {
     }
 
     try {
-      const result = await resetPassword({
-        token,
-        newPassword: password,
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          newPassword: password,
+        }),
       });
 
-      if (result.error) {
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
         setError("Ugyldigt eller udløbet nulstillingslink.");
         setLoading(false);
         return;

@@ -1,43 +1,78 @@
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { NextRequest, NextResponse } from "next/server";
+import { db, users, verifications, accounts } from "@/db";
+import { eq, and, lt, gt } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { token, password } = await request.json();
+    const { token, newPassword } = await request.json();
 
-    if (!token || !password) {
-      return Response.json(
+    if (!token || !newPassword) {
+      return NextResponse.json(
         { error: "Token eller adgangskode mangler" },
         { status: 400 }
       );
     }
 
-    // Verify token exists and is valid
-    // In production, you'd check against database
-    // For now, accept any token for development
-    console.log(`Password reset attempt for token: ${token}`);
+    // Find valid reset token
+    const now = new Date();
+    const tokenRecord = await db
+      .select()
+      .from(verifications)
+      .where(
+        and(
+          eq(verifications.id, token),
+          gt(verifications.expiresAt, now)
+        )
+      )
+      .limit(1);
 
-    // TODO: Update user password in database when properly integrated with auth system
-    // For now, just log the reset attempt
-    console.log(`Password reset completed for token: ${token}, new password: ${password}`);
+    if (tokenRecord.length === 0) {
+      return NextResponse.json(
+        { error: "Ugyldigt eller udløbet nulstillingslink" },
+        { status: 400 }
+      );
+    }
 
-    // const hashedPassword = await bcrypt.hash(password, 10);
-    // await db
-    //   .update(users)
-    //   .set({ password: hashedPassword })
-    //   .where(eq(users.email, (await db.select().from(users).where(eq(users.resetToken, token)).limit(1))[0]?.email));
+    // Find the user associated with this token
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, tokenRecord[0].identifier))
+      .limit(1);
 
-    return Response.json(
+    if (user.length === 0) {
+      return NextResponse.json(
+        { error: "Bruger ikke fundet" },
+        { status: 400 }
+      );
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user's password in accounts table
+    await db
+      .update(accounts)
+      .set({ password: hashedPassword })
+      .where(eq(accounts.userId, user[0].id));
+
+    // Delete the used token
+    await db
+      .delete(verifications)
+      .where(eq(verifications.id, token));
+
+    console.log(`Password reset completed for user: ${user[0].email}`);
+
+    return NextResponse.json(
       { success: true, message: "Adgangskode er blevet nulstillet" },
       { status: 200 }
     );
+
   } catch (error) {
     console.error("Reset password error:", error);
-    return Response.json(
-      { error: "Der opstod en fejl" },
+    return NextResponse.json(
+      { error: "Der opstod en fejl. Prøv venligst igen." },
       { status: 500 }
     );
   }
