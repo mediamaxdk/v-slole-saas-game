@@ -20,18 +20,18 @@ export async function POST(request: Request) {
     // For now, accept any token for development
     console.log(`Password reset attempt for token: ${token}`);
 
-    // Hash the new password
-    const hashedPassword = await import('bcryptjs').then(bcrypt => bcrypt.hash(password, 10));
+    // Hashes new password
+    const hashedPassword: string = await import('bcryptjs').then(bcrypt => bcrypt.hash(password, 10));
 
     // Update user password in database
-    // For now, just log the reset attempt - in production you'd update the actual password
-    console.log(`Password reset attempted for token: ${token}, new password: ${password}`);
-    
-    // TODO: Update user password when resetToken column is added to database
-    // await db
-    //   .update(users)
-    //   .set({ password: hashedPassword })
-    //   .where(eq(users.email, (await db.select().from(users).where(eq(users.resetToken, token)).limit(1))[0]?.email));
+    const hashedPassword = await import('bcryptjs').then(bcrypt => bcrypt.hash(password, 10));
+
+    await db
+      .update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.email, (await db.select().from(users).where(eq(users.resetToken, token)).limit(1))[0]?.email));
+
+    console.log(`Password reset completed for token: ${token}, email: ${(await db.select().from(users).where(eq(users.resetToken, token)).limit(1))[0]?.email}`);
 
     return Response.json(
       { success: true, message: "Adgangskode er blevet nulstillet" },
