@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -61,7 +61,30 @@ export default function ResetPasswordPage() {
     }
   }
 
-  const content = token ? (
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-brand-50 px-4">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8">
+          <Link href="/" className="block text-2xl font-black text-brand-700 mb-8">
+            ⌨️ Tastatur Helten
+          </Link>
+
+          <h1 className="text-2xl font-bold mb-6">Ugyldigt link</h1>
+          <p className="text-gray-600">
+            Nulstillingslinket er ugyldigt eller udløbet. Prøv at anmode en ny.
+          </p>
+          
+          <div className="mt-6 text-center">
+            <Link href="/glemt-adgangskode" className="text-sm text-brand-600 font-medium hover:underline">
+              Anmod om ny nulstillingslink
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
     <div className="min-h-screen flex items-center justify-center bg-brand-50 px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8">
         <Link href="/" className="block text-2xl font-black text-brand-700 mb-8">
@@ -128,30 +151,5 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
-  ) : (
-    <div className="min-h-screen flex items-center justify-center bg-brand-50 px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8">
-        <Link href="/" className="block text-2xl font-black text-brand-700 mb-8">
-          ⌨️ Tastatur Helten
-        </Link>
-
-        <h1 className="text-2xl font-bold mb-6">Ugyldigt link</h1>
-        <p className="text-gray-600">
-          Nulstillingslinket er ugyldigt eller udløbet. Prøv at anmode en ny.
-        </p>
-          
-        <div className="mt-6 text-center">
-          <Link href="/glemt-adgangskode" className="text-sm text-brand-600 font-medium hover:underline">
-            Anmod om ny nulstillingslink
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      {content}
-    </Suspense>
   );
 }
