@@ -3,6 +3,9 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db, verifications, users } from "@/db";
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 // GET /api/auth/verify-email — Better Auth email verification endpoint
 export async function GET(req: NextRequest) {
   try {
