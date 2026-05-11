@@ -21,11 +21,9 @@ export async function POST(request: Request) {
     console.log(`Password reset attempt for token: ${token}`);
 
     // Hashes new password
-    const hashedPassword: string = await import('bcryptjs').then(bcrypt => bcrypt.hash(password, 10));
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Update user password in database
-    const hashedPassword = await import('bcryptjs').then(bcrypt => bcrypt.hash(password, 10));
-
     await db
       .update(users)
       .set({ password: hashedPassword })
