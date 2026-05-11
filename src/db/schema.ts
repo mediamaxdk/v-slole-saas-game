@@ -39,6 +39,7 @@ export const users = pgTable("users", {
   createdAt:     timestamp("created_at").notNull().defaultNow(),
   updatedAt:     timestamp("updated_at").notNull().defaultNow(),
   lastActiveAt:  timestamp("last_active_at"),
+  resetToken:     text("reset_token").notNull(),         // Til glemt adgangskode
 }, (t) => ({
   emailIdx: uniqueIndex("users_email_idx").on(t.email),
 }));
