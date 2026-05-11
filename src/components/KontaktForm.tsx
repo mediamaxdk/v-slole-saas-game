@@ -87,7 +87,8 @@ export default function KontaktForm() {
             Få Tastatur Helten på jeres skole
           </h2>
           <p className="text-gray-600">
-            Vi tilbyder whitelabel-løsninger til skoler og kommuner med eget logo, domæne og tilpasset design.
+            Vi tilbyder whitelabel-løsninger til skoler og kommuner med eget logo, domæne og tilpasset design. Selve koden er frit tilgængelig på github, så det der tilbydes er support og tilpasning.
+            Denne formular kan også bruges til at komme med ønsker til feature-udvikling eller melde en fejl.
           </p>
         </div>
 
