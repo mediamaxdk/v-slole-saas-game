@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, users, verifications, accounts } from "@/db";
 import { eq, and, lt, gt } from "drizzle-orm";
-import bcrypt from "bcryptjs";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,14 +51,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // Hash the new password using scrypt (Better Auth's preferred method)
+    const salt = randomBytes(16).toString("hex");
+    const buf = (await scryptAsync(newPassword, salt, 64)) as Buffer;
+    const hashedPassword = `${buf.toString("hex")}.${salt}`;
+    console.log(`Generated hash: ${hashedPassword.substring(0, 20)}...`);
+
+    // Check existing account records for this user
+    const existingAccounts = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.userId, user[0].id));
+    
+    console.log(`Found ${existingAccounts.length} account(s) for user ${user[0].id}:`);
+    existingAccounts.forEach(acc => {
+      console.log(`  - Provider: ${acc.providerId}, AccountId: ${acc.accountId}`);
+    });
 
     // Update user's password in accounts table
-    await db
+    // Ensure we're updating the credential provider account
+    const updateResult = await db
       .update(accounts)
-      .set({ password: hashedPassword })
-      .where(eq(accounts.userId, user[0].id));
+      .set({ 
+        password: hashedPassword,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(accounts.userId, user[0].id),
+          eq(accounts.providerId, "credential") // Better Auth uses "credential" for email/password
+        )
+      );
+    
+    console.log(`Updated ${updateResult.rowCount || 1} account record(s)`);
 
     // Delete the used token
     await db
