@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { resetPassword } from "@/lib/auth-client";
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -34,16 +35,13 @@ function ResetPasswordContent() {
     }
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token, password }),
+      const result = await resetPassword({
+        token,
+        newPassword: password,
       });
 
-      if (!response.ok) {
-        setError("Der opstod en fejl. Prøv venligst igen.");
+      if (result.error) {
+        setError("Ugyldigt eller udløbet nulstillingslink.");
         setLoading(false);
         return;
       }
